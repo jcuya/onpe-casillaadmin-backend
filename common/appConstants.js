@@ -8,6 +8,7 @@ module.exports = Object.freeze({
     PROFILE_ADMIN:'admin',
     PROFILE_CITIZEN: 'citizen',
     PROFILE_SERVICE: 'service',
+    PROFILE_EVALUATOR : 'evaluator',
     PROFILE_REGISTRADOR_NOTIFICADOR: 'register_notifier',
     PATH_BOX: 'box/',
     PATH_NOTIFICATION: 'notification/',

@@ -70,8 +70,12 @@ const person = async(req, res, next) => {
 }
 
 const createBox = async(req, res, next) => {
+
+    console.log("USEREEEER", req)
     let box = req.fields;
     let files = req.files;
+
+    console.log("FILEEEEEEEEEE", files)
     let countFiles = Object.keys(files).length;
 
     if (utils.isEmpty(box.docType) ||
@@ -270,6 +274,9 @@ const download = async(req, res, next) => {
 
 }
 
+
+
+
 const deleteUser = async(req, res, next) => {
     const { doc, docType } = req.body;
 
@@ -370,6 +377,19 @@ const getUserCitizenById = async(req, res, next) => {
     return res.json(result);
 }
 
+
+
+
+const getUserCitizenDetailById = async(req, res, next) => {
+    const { id } = req.query;
+
+    if (utils.isEmpty(id)) {
+        return res.sendStatus(400);
+    }
+    let result = await userService.getUserCitizenDetailById(id);
+    return res.json(result);
+}
+
 const validarLogClaridad = async(req, res, next) => {
     let result = {};
     userService.getLogClaridad();
@@ -391,4 +411,5 @@ module.exports = {
     listUsers, 
     getUserCitizenById, 
     download,
-    validarLogClaridad };
+    validarLogClaridad,
+    getUserCitizenDetailById };

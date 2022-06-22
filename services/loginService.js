@@ -20,17 +20,17 @@ const login = async (docType_, doc_, password_) => {
         let password = CryptoJS.AES.decrypt(password_, appConstants.SECRET_KEY).toString(CryptoJS.enc.Utf8);
 
         let user = await db.collection(mongoCollections.USERS).findOne({doc_type: docType, doc: doc, 
-            $or: [{profile: appConstants.PROFILE_REGISTER}, {profile: appConstants.PROFILE_NOTIFIER}, {profile: appConstants.PROFILE_ADMIN}]});
+            $or: [{profile: appConstants.PROFILE_REGISTER}, {profile: appConstants.PROFILE_NOTIFIER}, {profile: appConstants.PROFILE_ADMIN},{profile: appConstants.PROFILE_EVALUATOR}]});
 
         if (!user) {
             logger.error('user ' + doc + '/' + docType + ' (admin) not exist');
             return {success: false, error: errors.LOGIN_INVALID_DATA};
         }
-
-        if(user.password !== utils.passwordHash(password)){
-            logger.error('user ' + doc + '/' + docType +' (admin) password not equals');
-            return {success: false, error: errors.LOGIN_INVALID_DATA};
-        }
+        //QUITAR COMENTADOOOOOOOO //SOLO PARA PRUEBAS //
+        // if(user.password !== utils.passwordHash(password)){
+        //     logger.error('user ' + doc + '/' + docType +' (admin) password not equals');
+        //     return {success: false, error: errors.LOGIN_INVALID_DATA};
+        // }
 
         let jwtToken = await jwtService.generateAuthToken(
             user._id,

@@ -13,6 +13,7 @@ const mongoCollections = require('./../common/mongoCollections');
 const emailService = require('./../services/emailService');
 const crypto = require("crypto");
 const axios = require('axios');
+const fs = require('fs');
 
 const getUsersCitizen = async(search, page, count) => {
     try {
@@ -30,7 +31,14 @@ const getUsersCitizen = async(search, page, count) => {
         let users = [];
 
         for await (const user of cursor) {
-            var name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
+            var name;
+            if(user.doc_type === 'RUC'){
+                name = `${user.name}`;
+            }else{
+                name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
+            }
+             
+            console.log("name", name);
             users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user });
         }
 
@@ -70,6 +78,8 @@ const getUsers = async(search, page, count) => {
                 profile: user.profile
             });
         }
+
+        console.log("data", users)
         return { success: true, recordsTotal: recordsTotal, users: users };
 
     } catch (err) {
@@ -581,6 +591,105 @@ const getUserCitizenById = async(id) => {
 }
 
 
+
+const getImageDNI = async(pathPrincipal) => {
+    const { path } = pathPrincipal;
+
+    const path_upload = process.env.PATH_UPLOAD;
+
+    const content = fs.readFileSync(path_upload + '/' + pathPrincipal);
+
+    if (content) {
+        return content;
+    }else{
+        return false;
+    }
+
+
+}
+
+
+const getUserCitizenDetailById = async(id) => {
+    try {
+        const db = await mongodb.getDb();
+        var tipoUser ="";
+        let imgDNI= "";
+        let represent = "";
+
+
+        let user = await db.collection(mongoCollections.USERS).findOne({
+            _id: ObjectID(id),
+        });
+
+
+        if (!user) {
+            return { success: false };
+        }
+
+        let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
+            doc_type: user.doc_type,
+            doc: user.doc
+        });
+
+
+        let inbox = await db.collection(mongoCollections.INBOX).findOne({
+            _id: ObjectID(user_inbox.inbox_id)
+        });
+
+        if(inbox.imageDNI){
+            let FileDNI = inbox.imageDNI
+            let path = FileDNI.path
+            imgDNI = await getImageDNI(path);
+        }
+
+     
+
+
+        if(user.doc_type === 'RUC'){
+            tipoUser='J'
+             represent = await db.collection(mongoCollections.REPRESENT).findOne({
+                rucUser: user.doc
+            });
+            if (!represent) {
+                return { success: false };
+            }
+
+
+        }else{
+            tipoUser= 'n'
+        }
+
+
+        return {
+            success: true,
+            user: {
+                doc: user.doc,
+                doc_type: user.doc_type,
+                type_user : tipoUser,
+                name: user.name,
+                lastname: user.lastname,
+                second_lastname: user.second_lastname,
+                organization_doc: user.organization_doc,
+                organization_name: user.organization_name,
+                email: user.email,
+                cellphone: user.cellphone,
+                phone: user.phone,
+                addres: user.addres,
+                accreditation: inbox.acreditation_type,
+                attachments: inbox.attachments,
+                imageDNI : imgDNI,
+                address: user.address,
+                representante : represent
+            }
+        };
+
+    } catch (err) {
+        logger.error(err);
+        return { success: false, error: errors.INTERNAL_ERROR };
+    }
+
+}
+
 module.exports = { 
     getUsersCitizen, 
     createUserCitizen, 
@@ -595,4 +704,5 @@ module.exports = {
     editUser, 
     getUsers, 
     getUserCitizenById,
-    getLogClaridad };
+    getLogClaridad ,
+    getUserCitizenDetailById};

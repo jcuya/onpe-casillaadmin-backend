@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === 'local') {
         port: 6379,
         host: '127.0.0.1',
         family: 4,
-        password: process.env.REDIS_PASSWORD,
+       // password: process.env.REDIS_PASSWORD,//SOLO PARA PRUEBAS
         db: 0,
     });
 
@@ -19,20 +19,20 @@ if (process.env.NODE_ENV === 'local') {
         port: 6379,
         host: '127.0.0.1',
         family: 4,
-        password: process.env.REDIS_PASSWORD,
+       // password: process.env.REDIS_PASSWORD,//SOLO PARA PRUEBAS
         db: 0,
     });
 } else {
     redisWriter = new Redis({
         port: 6379,
         host: process.env.REDIS_WRITER,
-        password: process.env.REDIS_PASSWORD
+       // password: process.env.REDIS_PASSWORD//SOLO PARA PRUEBAS
     });
 
     redisReader = new Redis({
         port: 6379,
         host: process.env.REDIS_READER,
-        password: process.env.REDIS_PASSWORD
+       // password: process.env.REDIS_PASSWORD//SOLO PARA PRUEBAS
     });
 }
 

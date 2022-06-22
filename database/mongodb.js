@@ -36,7 +36,8 @@ async function getConnections() {
         // reconnectTries: 10,
     };
 
-    uri = `mongodb://${process.env.MONGODB_WEB_USERNAME}:${process.env.MONGODB_WEB_PASSWORD}@${process.env.MONGODB_WEB_HOST}`;
+  //  uri = `mongodb://${process.env.MONGODB_WEB_USERNAME}:${process.env.MONGODB_WEB_PASSWORD}@${process.env.MONGODB_WEB_HOST}`;//SOLO PARA PRUEBAS
+  uri = `mongodb://localhost:27017`;
 
     try {
         _db = await mongoClient.connect(uri, connectConfig);

@@ -6,6 +6,7 @@ module.exports = Object.freeze({
     USERS: 'users',
     INBOX: 'inbox',
     USER_INBOX: 'user_inbox',
+    REPRESENT : 'representante',
     NOTIFICATIONS: 'notifications',
     ORGANIZATIONS: 'organizations',
     CATALOG: 'catalog',

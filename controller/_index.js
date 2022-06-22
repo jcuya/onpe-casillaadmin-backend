@@ -83,7 +83,7 @@ module.exports = () => {
     }, catalogController.getTypes);
 
     router.post('/users', function(req, res, next) {
-        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.users);
     router.post('/list-users', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
@@ -100,8 +100,11 @@ module.exports = () => {
     router.get('/get-user', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.getUserCitizenById);
+    router.get('/get-user-info-detail', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
+    }, userController.getUserCitizenDetailById);
     router.get('/download-pdf', function(req, res, next) {
-        authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.download);
 
 
