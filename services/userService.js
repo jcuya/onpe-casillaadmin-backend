@@ -39,17 +39,15 @@ const getUsersCitizen = async(search, page, count) => {
             }
 
             let inbox = await db.collection(mongoCollections.INBOX).findOne({
-                register_user_id: ObjectID(user._id),
+                register_user_id: user._id + "",
             });
-            console.log("INBOOOOOOOOOOOX",  user)
 
             if(inbox == null){
-                inbox ={
+                inbox = {
                     estado : ""
                 }
             }
              
-            console.log("name", name);
             users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user, estate_inbox : inbox.estado });
         }
 
