@@ -103,6 +103,9 @@ module.exports = () => {
     router.get('/get-user-info-detail', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.getUserCitizenDetailById);
+    router.post('/updateEstateInbox', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
+    }, userController.updateEstateInbox);
     router.get('/download-pdf', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.download);

@@ -390,6 +390,20 @@ const getUserCitizenDetailById = async(req, res, next) => {
     return res.json(result);
 }
 
+
+const updateEstateInbox = async(req, res, next) => {
+        const body= req.body;
+    var iduser = body.idUser;
+    var estado_ = body.estado;
+    var motivo_ = body.motivo
+
+    if (utils.isEmpty(iduser)) {
+        return res.sendStatus(400);
+    }
+    let result = await userService.updateEstateInbox(iduser,estado_,motivo_);
+    return res.json(result);
+}
+
 const validarLogClaridad = async(req, res, next) => {
     let result = {};
     userService.getLogClaridad();
@@ -412,4 +426,4 @@ module.exports = {
     getUserCitizenById, 
     download,
     validarLogClaridad,
-    getUserCitizenDetailById };
+    getUserCitizenDetailById,updateEstateInbox };

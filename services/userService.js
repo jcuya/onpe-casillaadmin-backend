@@ -690,6 +690,34 @@ const getUserCitizenDetailById = async(id) => {
 
 }
 
+
+
+
+const updateEstateInbox = async(iduser, estado, motivo= null) => {
+    const db = await mongodb.getDb();
+    let objectMotivo = {}; 
+    const inbox = await db.collection(mongoCollections.INBOX).findOne({
+        register_user_id: ObjectID(iduser),
+    });
+
+    if (!inbox) {
+        return { success: false, error: 'No tiene casilla' };
+    }
+
+    if(motivo != null){
+        objectMotivo = motivo;
+    }
+
+    result = await db.collection(mongoCollections.INBOX).update({ register_user_id: ObjectID(iduser) }, {
+        $set: {
+            estado: estado,
+            motivo: objectMotivo,           
+            update_date: new Date(),
+        }
+    });
+    return { success: true };
+}
+
 module.exports = { 
     getUsersCitizen, 
     createUserCitizen, 
@@ -705,4 +733,4 @@ module.exports = {
     getUsers, 
     getUserCitizenById,
     getLogClaridad ,
-    getUserCitizenDetailById};
+    getUserCitizenDetailById ,updateEstateInbox};
