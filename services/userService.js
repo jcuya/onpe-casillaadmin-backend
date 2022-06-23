@@ -706,7 +706,8 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     const db = await mongodb.getDb();
     let objectMotivo = {}; 
     const inbox = await db.collection(mongoCollections.INBOX).findOne({
-        register_user_id: ObjectID(iduser),
+        //register_user_id: ObjectID(iduser),
+        register_user_id: iduser,
     });
 
     if (!inbox) {
@@ -725,8 +726,12 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
         }
     });
 
+    if(result){
+        respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    }
 
-    respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    //respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    //console.log("result_xxxxxxxxx", result);
 
 
 
