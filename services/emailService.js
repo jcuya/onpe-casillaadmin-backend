@@ -401,6 +401,86 @@ const sendEmailNewNotificationWithAws = async (name, email) => {
   return false;
 }
 
+const sendEmailDisapprovedWithAws = async (name, email) => {
+    // AWS.config.update({
+    //     accessKeyId: process.env.AWS_ACCESS_KEY_ID_SES,
+    //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_SES,
+    //     region: process.env.AWS_REGION_SES,
+    // });
+  
+    // const ses = new AWS.SES();
+  
+    try {
+      const html = `
+      <html>
+      <body>  
+          <!-- En DIV's (Ini) -->
+          <div style="width: 100%; max-width: 700px; margin: 0 auto;">
+              <div style="text-align: center; padding-top: 20px;">
+                  <table style="border:none; width: 100%;background: #062b56;">
+                      <tr>
+                          <td style="text-align: left;  padding-left: 10px;  font-size: 50px;  line-height: 48px;  font-weight: bold;   font-family: system-ui;    color: #fff;">
+                              SISEN
+                          </td>                    
+                          <td style=" text-align: right; font-size: 15px; line-height: 48px;  font-family: system-ui; color: #fff; padding-right: 10px;">
+                              Sistema de Notificación Electrónica de la ONPE
+                          </td>
+                      </tr>
+                  </table>
+              </div>
+              <hr>
+              <p style="font-family:arial,helvetica,sans-serif; font-size:24px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                  Hola ${name},
+              </p>
+              <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                  Hemos recibido su solicitud de creación de casilla electrónica y usted no cuenta con los requisitos establecidos por la ONPE.</p>
+              <div style="font-family:arial,helvetica,sans-serif; text-align:left; margin: 20px 0 20px 0; padding: 0 10px 0 10px;"></div>
+<div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
+<!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
+</div>
+              <p style="font-family:arial,helvetica,sans-serif; font-size:12px; color:rgb(80,83,90);text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px;">
+                  Jr. Washington 1894, Cercado de Lima<br>
+                  Central Telefónica: (01) 417-0630 / L - S 07:00 h - 18:00 h 
+              </p>
+          </div>
+      </body>
+      </html>                    
+          `;
+  
+  
+      // const params = {
+      //     Destination: {
+      //         ToAddresses: [email]
+      //     },
+      //     Message: {
+      //         Body: {
+      //             Html: {
+      //                 Charset: 'UTF-8',
+      //                 Data: html
+      //             },
+      //         },
+      //         Subject: {
+      //             Charset: 'UTF-8',
+      //             Data: 'Nueva Notificación - SISEN'
+      //         }
+      //     },
+      //     Source: process.env.AWS_REGION_SES_MAIL
+      // };
+  
+      // let result = await ses.sendEmail(params).promise();
+  
+      let result = await enviarCorreo(process.env.EMAIL_ORIGEN, email, 'Nueva Notificación - SISEN', html);
+  
+      logger.info(JSON.stringify({ message: `email sent to: ${email}`, result: result }));
+  
+      return true;
+  
+    } catch (err) {
+      logger.error(JSON.stringify({ message: `error sending email to ${email}`, result: err }));
+    }
+  
+    return false;
+  }
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
