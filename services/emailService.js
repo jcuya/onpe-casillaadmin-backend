@@ -401,7 +401,6 @@ const sendEmailNewNotificationWithAws = async (name, email) => {
   return false;
 }
 
-
 const sendEmailDisapprovedWithAws = async (name, email) => {
     // AWS.config.update({
     //     accessKeyId: process.env.AWS_ACCESS_KEY_ID_SES,
