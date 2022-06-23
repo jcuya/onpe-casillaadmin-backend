@@ -109,6 +109,9 @@ module.exports = () => {
     router.get('/download-pdf', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.download);
+    // router.post('/sendEmailEstateInbox', function(req, res, next) {
+    //     authFilterRole([appConstants.PROFILE_ADMIN, appConstants.PROFILE_EVALUATOR], req, res, next);
+    // }, formidableMiddleware(), userController.sendEmailEstateInbox);
 
 
 

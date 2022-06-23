@@ -702,7 +702,7 @@ const getUserCitizenDetailById = async(id) => {
 
 
 
-const updateEstateInbox = async(iduser, estado, motivo= null) => {
+const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     const db = await mongodb.getDb();
     let objectMotivo = {}; 
     const inbox = await db.collection(mongoCollections.INBOX).findOne({
@@ -724,6 +724,12 @@ const updateEstateInbox = async(iduser, estado, motivo= null) => {
             update_date: new Date(),
         }
     });
+
+
+    respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+
+
+
     return { success: true };
 }
 

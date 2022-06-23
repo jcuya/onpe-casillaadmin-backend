@@ -5,6 +5,7 @@ const utils = require('./../common/utils');
 const userService = require('./../services/userService');
 const candidateService = require('./../services/candidateService');
 const inboxService = require('./../services/inboxService');
+const emailService = require('./../services/emailService')
 const jwtService = require('./../services/jwtService');
 const appConstants = require('./../common/appConstants');
 const errors = require('./../common/errors');
@@ -276,6 +277,20 @@ const download = async(req, res, next) => {
 
 
 
+const sendEmailEstateInbox = async(req, res, next) => {
+    const Body= req.body;
+
+    var email = Body.email;
+    var estado = Body.estado;
+    var nombre = Body.nombres;
+
+    if (utils.isEmpty(id)) {
+        return res.sendStatus(400);
+    }
+    let result = await emailService.sendEmailEstateInbox(nombre , email , estado);
+    return res.json(result);
+}
+
 
 const deleteUser = async(req, res, next) => {
     const { doc, docType } = req.body;
@@ -395,12 +410,15 @@ const updateEstateInbox = async(req, res, next) => {
         const body= req.body;
     var iduser = body.idUser;
     var estado_ = body.estado;
-    var motivo_ = body.motivo
+    var motivo_ = body.motivo;
+
+    var name = body.name;
+    var email = body.email;
 
     if (utils.isEmpty(iduser)) {
         return res.sendStatus(400);
     }
-    let result = await userService.updateEstateInbox(iduser,estado_,motivo_);
+    let result = await userService.updateEstateInbox(iduser,estado_,motivo_ ,name, email);
     return res.json(result);
 }
 
@@ -426,4 +444,4 @@ module.exports = {
     getUserCitizenById, 
     download,
     validarLogClaridad,
-    getUserCitizenDetailById,updateEstateInbox };
+    getUserCitizenDetailById,updateEstateInbox ,sendEmailEstateInbox };
