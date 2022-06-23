@@ -725,8 +725,12 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
         }
     });
 
+    if(result){
+        respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    }
 
-    respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    //respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+    //console.log("result_xxxxxxxxx", result);
 
 
 
