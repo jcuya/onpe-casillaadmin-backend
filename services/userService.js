@@ -41,11 +41,10 @@ const getUsersCitizen = async(search, page, count) => {
             let inbox = await db.collection(mongoCollections.INBOX).findOne({
                 register_user_id: user._id + "",
             });
+            console.log("INB0000X" , inbox)
 
             if(inbox == null){
-                inbox = {
-                    estado : ""
-                }
+                inbox = { estado : ""}
             }
              
             users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user, estate_inbox : inbox.estado });
@@ -630,7 +629,6 @@ const getUserCitizenDetailById = async(id) => {
             _id: ObjectID(id),
         });
 
-
         if (!user) {
             return { success: false };
         }
@@ -681,6 +679,8 @@ const getUserCitizenDetailById = async(id) => {
                 organization_doc: user.organization_doc,
                 organization_name: user.organization_name,
                 email: user.email,
+                ubigeo : user.Ubigeo,
+                paginaweb : user.PaginaWeb,
                 cellphone: user.cellphone,
                 phone: user.phone,
                 addres: user.addres,
@@ -706,7 +706,7 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     const db = await mongodb.getDb();
     let objectMotivo = {}; 
     const inbox = await db.collection(mongoCollections.INBOX).findOne({
-        register_user_id: ObjectID(iduser),
+        register_user_id: iduser + "",
     });
 
     if (!inbox) {
@@ -717,7 +717,7 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
         objectMotivo = motivo;
     }
 
-    result = await db.collection(mongoCollections.INBOX).update({ register_user_id: ObjectID(iduser) }, {
+    result = await db.collection(mongoCollections.INBOX).update({ register_user_id: iduser }, {
         $set: {
             estado: estado,
             motivo: objectMotivo,           
