@@ -37,9 +37,20 @@ const getUsersCitizen = async(search, page, count) => {
             }else{
                 name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
             }
+
+            let inbox = await db.collection(mongoCollections.INBOX).findOne({
+                register_user_id: ObjectID(user._id),
+            });
+            console.log("INBOOOOOOOOOOOX",  user)
+
+            if(inbox == null){
+                inbox ={
+                    estado : ""
+                }
+            }
              
             console.log("name", name);
-            users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user });
+            users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user, estate_inbox : inbox.estado });
         }
 
         return { success: true, recordsTotal: recordsTotal, users: users };
