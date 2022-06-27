@@ -9,6 +9,8 @@ const inboxService = require('./../services/inboxService');
 const jwtService = require('./../services/jwtService');
 const fs = require('fs');
 
+const typeFiles = ["application/pdf", "image/jpg", "image/jpeg", "image/png", "image/bmp", "image/x-ms-bmp"];
+
 const notifications = async (req, res, next) => {
     const {search, filter, page, count} = req.body;
 
@@ -86,8 +88,10 @@ const singNotification = async (req, res, next) => {
         || utils.isEmpty(notification.doc)
         || utils.isEmpty(notification.name)
         || utils.isEmpty(notification.expedient)
-        || utils.isEmpty(notification.message)) {
-        return res.sendStatus(400);
+        || utils.isEmpty(notification.message)
+        || Object.keys(files).filter((x) => x.match(/^file[0-9]{1,3}$/g)).length == 0
+        || countFiles == 0) {
+        return res.status(400).json({success: false, error: "Datos no válidos"});
     }
 
     let [resultInbox, resultUser] = await Promise.all([
@@ -96,7 +100,7 @@ const singNotification = async (req, res, next) => {
     ]);
 
     if (!resultInbox.success || !resultUser.success) {
-        return res.sendStatus(400);
+        return res.status(400).json({success: false, error: "Nro. de documento no registrado"});
     }
 
     let _files = [];
@@ -108,19 +112,19 @@ const singNotification = async (req, res, next) => {
     let isValid = true;
     let message = "";
     for await (file of _files) {
-        if(files['file' + file.index].size == 0 || files['file' + file.index].size > 1048576 * 3) {
+        if(files['file' + file.index].size == 0 || files['file' + file.index].size > appConstants.TAM_MAX_FILE) {
             isValid = false;
             message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} con tamaño no válido`;
             break;
         }
-        if(files['file' + file.index].type != "application/pdf") {
+        if(!typeFiles.includes(files['file' + file.index].type)) {//if(files['file' + file.index].type != "application/pdf") {
             isValid = false;
-            message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} sólo en formato PDF`;
+            message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} sólo en formato PDF, JPEG, JPG, PNG o BMP`;
             break;
         }
-        const signedPdfBuffer = fs.readFileSync(files['file' + file.index].path);
-        let verified = (Buffer.isBuffer(signedPdfBuffer) && signedPdfBuffer.lastIndexOf("%PDF-") === 0 && signedPdfBuffer.lastIndexOf("%%EOF") > -1);
-        if(!verified) {
+        const signedFile = fs.readFileSync(files['file' + file.index].path);
+        //let verified = (Buffer.isBuffer(signedFile) && signedFile.lastIndexOf("%PDF-") === 0 && signedFile.lastIndexOf("%%EOF") > -1);
+        if(!validatebyteFile(files['file' + file.index].type, signedFile)) {
             isValid = false;
             message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} está dañado o no es válido`;
         }
@@ -142,6 +146,23 @@ const singNotification = async (req, res, next) => {
     }
 
     return res.json({success: true, param: result.param});
+}
+
+const validatebyteFile = (typeFile, signedFile) => {
+    switch(typeFile) {
+        case "application/pdf":
+            return (Buffer.isBuffer(signedFile) && signedFile.lastIndexOf("%PDF-") === 0 && signedFile.lastIndexOf("%%EOF") > -1);
+        case "image/jpg": 
+        case "image/jpeg": 
+            return (/^(ffd8ffe([0-9]|[a-f]){1}$)/g).test(signedFile.toString('hex').substring(0, 8));
+        case "image/png":
+            return signedFile.toString('hex').startsWith("89504e47");
+        case "image/bmp":
+        case "image/x-ms-bmp":
+            return signedFile.toString('hex').startsWith("424d");
+        default:
+            return false;
+    }
 }
 
 const sendNotification = async (req, res, next) => {
@@ -254,33 +275,34 @@ const saveAutomaticNotification = async (req, res, next) => {
     if(!isValid) {
         return res.status(400).send({success: false, message: message});
     }
-    const result = await notificationService.automaticNotification(notification.name, notification.docType, notification.doc, files);
+    const result = await notificationService.automaticNotification(notification, files);
     return res.status(!result ? 404 : 200).json(result);
 }
 
 function validarCampos(notification, files) {
+
     let countFiles = Object.keys(files).length;
     let countFields = Object.keys(notification).length;
     let isValid = true;
     let message = "";
-    let maxFiles = 1;
+    let maxFiles = appConstants.MAX_FILES_AUTOMATIC_NOTIFICATION;
 
-    if(utils.isEmpty(notification.docType)
-        || utils.isEmpty(notification.doc)
-        || utils.isEmpty(notification.name)
-        || Object.keys(files).filter((x) => x.match(/^file[0-9]{1,3}$/g)).length == 0
-        || countFiles == 0) {
+    let validField = (utils.isEmpty(notification.docType)
+                    || utils.isEmpty(notification.doc)
+                    || utils.isEmpty(notification.name)
+                    || Object.keys(files).filter((x) => x.match(/^file[0-9]{1,3}$/g)).length == 0
+                    || countFiles == 0);
+
+    if(validField) {
         isValid = false;
         message+= ((message.length> 0) ? ", " : "") + "Datos no válidos";
     }
     let docType_ = ["dni", "ce"];
-    console.log("docType:",notification.docType, " docType_.includes(notification.docType):", docType_.includes(notification.docType));
     if(!docType_.includes(notification.docType)) {
         isValid = false;
         message+= ((message.length> 0) ? ", " : "") + "Tipo de documento no válido";
     }
     let doc_ = new String(notification.doc).toString();
-    console.log("length: ", doc_.length);
     if(notification.docType == "dni" && doc_.length != 8) {
         isValid = false;
         message+= ((message.length> 0) ? ", " : "") + "Documento no válido";
@@ -289,15 +311,15 @@ function validarCampos(notification, files) {
         isValid = false;
         message+= ((message.length> 0) ? ", " : "") + "Documento no válido";
     }
-    if(countFiles > maxFiles) {
-        isValid = false;
-        message+= ((message.length> 0) ? ", " : "") +  `Máximo ${maxFiles} ${maxFiles ==  1 ? "archivo" : "archivos"}`;
-    }
-    if(countFields < 3 || countFields > 3) {
+    if(countFields < 3 || countFields > 5) {
         isValid = false;
         message+= ((message.length> 0) ? ", " : "") + "Número de campos no válido";
     }
 
+    if(countFiles > maxFiles) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") +  `Máximo ${maxFiles} ${maxFiles ==  1 ? "archivo" : "archivos"}`;
+    }
     let _files = [];
     for (let i = 1; i <= countFiles; i++) {
         _files.push({index: i});
@@ -305,7 +327,7 @@ function validarCampos(notification, files) {
 
     for (file of _files) {
         if(files['file' + file.index] != undefined){
-            if(files['file' + file.index].size == 0 || files['file' + file.index].size > 1048576 * 3) {
+            if(files['file' + file.index].size == 0 || files['file' + file.index].size > appConstants.TAM_MAX_FILE) {
                 isValid = false;
                 message+= ((message.length> 0) ? ", " : "") + `Archivo ${'file' + file.index} con tamaño no válido`;
                 break;
@@ -324,6 +346,7 @@ function validarCampos(notification, files) {
             }
         }
     }
+
     return [isValid, message];
 }
 

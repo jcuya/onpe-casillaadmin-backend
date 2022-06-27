@@ -362,7 +362,14 @@ const sendNotification = async(notification, user) => {
     return { success: true };
 }
 
-const automaticNotification = async(sistema, docType, doc, files) => {
+const automaticNotification = async(notification_param, files) => {
+
+    let sistema = notification_param.name;
+    let docType = notification_param.docType;
+    let doc = notification_param.doc;
+    let message = notification_param.message;
+    let expedient = notification_param.expedient;
+    
     let created_at_timestamp = Date.now();
     let created_at = new Date(created_at_timestamp);
     let countFiles = Object.keys(files).length;
@@ -383,7 +390,7 @@ const automaticNotification = async(sistema, docType, doc, files) => {
 
     try {
         const db = await mongodb.getDb();
-
+        
         for await (file of _files) {
             if(files['file' + file.index] != undefined) {
                 files['file' + file.index].path;
@@ -394,8 +401,8 @@ const automaticNotification = async(sistema, docType, doc, files) => {
 
         let user = resultUser.user;
         
-        notification.expedient = `Notificación automática - Credenciales del sistema ${sistema}`;
-        notification.message = `Descargue el adjunto, en el se indicará sus Credenciales de Acceso al Sistema ${sistema}.`;
+        notification.expedient = `${expedient != null ? expedient : `Notificación automática - Credenciales del sistema ${sistema}`}`;
+        notification.message = `${message != null ? message : `Descargue el archivo PDF adjunto, en el se indicará sus Credenciales de Acceso al Sistema ${sistema}.`}`;
 
         let newNotification = {
             inbox_id: ObjectId(inboxUser.inbox._id),

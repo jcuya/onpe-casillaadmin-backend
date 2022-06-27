@@ -26,11 +26,11 @@ const login = async (docType_, doc_, password_) => {
             logger.error('user ' + doc + '/' + docType + ' (admin) not exist');
             return {success: false, error: errors.LOGIN_INVALID_DATA};
         }
-        //QUITAR COMENTADOOOOOOOO //SOLO PARA PRUEBAS //
-        // if(user.password !== utils.passwordHash(password)){
-        //     logger.error('user ' + doc + '/' + docType +' (admin) password not equals');
-        //     return {success: false, error: errors.LOGIN_INVALID_DATA};
-        // }
+
+        if(user.password !== utils.passwordHash(password)){
+            logger.error('user ' + doc + '/' + docType +' (admin) password not equals');
+            return {success: false, error: errors.LOGIN_INVALID_DATA};
+        }
 
         let jwtToken = await jwtService.generateAuthToken(
             user._id,

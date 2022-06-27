@@ -16,6 +16,7 @@ const authFilter = require('./../filters/authFilter');
 const authFilterRole = require('../filters/authFilterRole');
 const authFilterClaridad = require('./../filters/authFilterClaridad');
 const appConstants = require('../common/appConstants');
+const path = require('path');
 
 module.exports = () => {
 
@@ -31,6 +32,10 @@ module.exports = () => {
     router.get('/download-acuse', notificationController.downloadAcuseNotified);
 
     router.post('/update-service', servicesController.generateToken);
+
+    router.post('/validar-casilla', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_SERVICE], req, res, next);
+    }, formidableMiddleware(), userController.validarCasilla);
 
     router.get('/validar-log-claridad', function(req, res, next) {
         authFilterClaridad([appConstants.PROFILE_SERVICE], req, res, next);
@@ -109,11 +114,11 @@ module.exports = () => {
     router.get('/download-pdf', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.download);
-    // router.post('/sendEmailEstateInbox', function(req, res, next) {
-    //     authFilterRole([appConstants.PROFILE_ADMIN, appConstants.PROFILE_EVALUATOR], req, res, next);
-    // }, formidableMiddleware(), userController.sendEmailEstateInbox);
 
 
+
+
+    
 
     router.post('/person', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
@@ -130,6 +135,12 @@ module.exports = () => {
     router.get('/search-ruc', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.searchRuc);
+    router.get('/search-ce', function (req, res, next) {
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+      }, userController.searchCE);
+      router.get('/search-casilla', function (req, res, next) {
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+      }, userController.searchCasilla);
     router.post('/create-box', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.createBox);
@@ -140,8 +151,8 @@ module.exports = () => {
     router.get('/service/download/:token', invokerController.download);
     router.post('/service/upload/:token', formidableMiddleware(), invokerController.upload);
 
-    router.options('/*', (req, res) => {
-        return res.status(200).json({})
+    router.all('/*', (req, res) => {
+        res.status('404').sendFile(path.join(__dirname, '../error/index.html'));
     });
 
     return router;

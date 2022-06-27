@@ -14,6 +14,7 @@ const emailService = require('./../services/emailService');
 const crypto = require("crypto");
 const axios = require('axios');
 const fs = require('fs');
+const mkdirp = require("mkdirp");
 
 const getUsersCitizen = async(search, page, count) => {
     try {
@@ -86,8 +87,6 @@ const getUsers = async(search, page, count) => {
                 profile: user.profile
             });
         }
-
-        console.log("data", users)
         return { success: true, recordsTotal: recordsTotal, users: users };
 
     } catch (err) {
@@ -108,13 +107,13 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
     let created_at = new Date();
 
     let newInbox = {
-        doc: box.doc,
-        doc_type: box.docType,
-        email: box.email,
-        cellphone: box.cellphone,
-        phone: box.phone,
-        address: box.address,
-        acreditation_type: box.acreditation_type,
+        doc_type: box.box_doc_type,
+        doc: box.box_doc,
+        email: box.box_email,
+        cellphone: box.user_cellphone,
+        phone: box.user_phone,
+        address: box.box_address,
+        acreditation_type: box.box_acreditation_type,
         attachments: attachments,
         register_user_id: idUser,
         created_at: created_at,
@@ -123,20 +122,24 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
 
     const password = crypto.randomBytes(5).toString('hex');
 
+    let uName = box.user_name.toUpperCase();
+    let uLastname = box.user_lastname != null ? box.user_lastname.toUpperCase() : null;
+    let uSecondLastname = box.user_second_lastname != null ? box.user_second_lastname.toUpperCase() : null;
+
     let newUser = {
-        doc: box.doc,
-        doc_type: box.docType,
+        doc_type: box.user_doc_type,
+        doc: box.user_doc,
         profile: appConstants.PROFILE_CITIZEN,
         password: utils.passwordHash(password),
-        name: box.name,
-        lastname: box.lastname,
-        second_lastname: box.second_lastname,
-        email: box.email,
-        cellphone: box.cellphone,
-        phone: box.phone,
-        address: box.address,
+        name: uName,
+        lastname: uLastname,
+        second_lastname: uSecondLastname,
+        email: box.user_email,
+        cellphone: box.user_cellphone,
+        phone: box.user_phone,
+        address: box.user_address,
         //organization_doc: candidate.organization_doc,
-        organization_name: box.organization,
+        organization_name: box.box_organization_name,
         register_user_id: idUser,
         created_at: created_at,
         updated_password: false,
@@ -144,8 +147,8 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
     };
 
     let newUserInbox = {
-        doc: box.doc,
-        doc_type: box.docType,
+        doc: box.box_doc,
+        doc_type: box.box_doc_type,
         profile: appConstants.USER_INBOX_PROFILE_OWNER
     }
 
@@ -163,11 +166,12 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
         await db.collection(mongoCollections.USER_INBOX).insertOne(newUserInbox);
         logger.info('success insert in user_inbox');
 
-        let name = `${box.name} ${box.lastname} ${box.second_lastname != undefined?box.second_lastname:''}`;
-        await emailService.sendEmailNewUserCitizen(name, newUser.email, password, box.doc);
+        let name = `${uName} ${uLastname != null ? uLastname : ''} ${uSecondLastname != null ? uSecondLastname : ''}`;
+        //let name = `${box.name} ${box.lastname} ${box.second_lastname != undefined?box.second_lastname:''}`;
+        await emailService.sendEmailNewUserCitizen(name, newUser.email, password, box.box_doc);
 
         // Consultar servicio de claridad
-        //searchCLARIDAD(box.doc, box.docType, true);
+        searchCLARIDAD(box.box_doc, box.box_doc_type, true);
         return { success: true };
 
     } catch (err) {
@@ -193,6 +197,7 @@ const searchCLARIDAD = async (dniCandidato, tipoDoc, generarPassword) => {
         result.success = true;
         result.statusCode = response.statusCode;
     } catch (error) {
+        logger.error(error);
         let err = error.toJSON();
         if(err.status != 404) await saveDoc(dniCandidato, tipoDoc);
         result.success = false;
@@ -256,12 +261,43 @@ const getUserCitizen = async(docType, doc) => {
 
         return {
             success: true,
+            message: "Tiene casilla electrónica",
             user: {
                 names: user.name + ' ' + user.lastname,
                 name: user.name,
                 lastname: user.lastname,
                 organization_doc: user.organization_doc,
                 organization_name: user.organization_name
+            }
+        };
+
+    } catch (err) {
+        logger.error(err);
+        return { success: false, error: errors.INTERNAL_ERROR };
+    }
+}
+
+const getUserCasilla = async(docType, doc) => {
+    try {
+        const db = await mongodb.getDb();
+
+        let user = await db.collection(mongoCollections.USERS).findOne({
+            doc_type: docType,
+            doc: doc,
+            profile: appConstants.PROFILE_CITIZEN
+        });
+
+        if (!user) {
+            logger.error('user citizen ' + doc + '/' + docType + ' not exist');
+            return { success: false, error: errors.CITIZEN_NOT_EXIST.message };
+        }
+
+        return {
+            success: true,
+            message: "Tiene casilla electrónica",
+            user: {
+                email: user.email,
+                cellphone: user.cellphone
             }
         };
 
@@ -598,15 +634,33 @@ const getUserCitizenById = async(id) => {
 
 }
 
+const existCE = async (doc, docType) => {
+    const db = await mongodb.getDb();
+  
+    const exist = await db.collection(mongoCollections.USERS).findOne({
+      doc_type: docType,
+      doc: doc
+    });
+  
+    const exist_2 = await db.collection(mongoCollections.USERS).findOne({
+      rep_doc_type: docType,
+      rep_doc: doc
+    });
+  
+    return exist != null ? exist : exist_2;
+}
 
 
 const getImageDNI = async(pathPrincipal) => {
     const { path } = pathPrincipal;
 
     const path_upload = process.env.PATH_UPLOAD;
-
-    const content = fs.readFileSync(path_upload + '/' + pathPrincipal);
-
+    ruta = await mkdirp(path_upload + '/' + pathPrincipal);
+    if (ruta == undefined) return false;
+        console.log("Ruta del archivo  si existe", ruta);
+        const content = fs.readFileSync(path_upload + '/' + pathPrincipal);
+    
+    console.log("Imagen DNI CONTENT", content);
     if (content) {
         return content;
     }else{
@@ -629,27 +683,34 @@ const getUserCitizenDetailById = async(id) => {
             _id: ObjectID(id),
         });
 
+
+
         if (!user) {
             return { success: false };
         }
+        
+     //console.log("Datos de usuario xxxx", user);
 
         let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
             doc_type: user.doc_type,
             doc: user.doc
         });
 
+        //console.log("Datos de user_inbox xxxx", user_inbox);
 
         let inbox = await db.collection(mongoCollections.INBOX).findOne({
             _id: ObjectID(user_inbox.inbox_id)
         });
 
+        //console.log("Datos de inbox xxxx", inbox);
+
         if(inbox.imageDNI){
             let FileDNI = inbox.imageDNI
             let path = FileDNI.path
             imgDNI = await getImageDNI(path);
+            console.log("Imagen DNI", imgDNI)
         }
 
-     
 
 
         if(user.doc_type === 'RUC'){
@@ -707,6 +768,7 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     let objectMotivo = {}; 
     const inbox = await db.collection(mongoCollections.INBOX).findOne({
         register_user_id: iduser + "",
+			  
     });
 
     if (!inbox) {
@@ -724,6 +786,9 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
             update_date: new Date(),
         }
     });
+  
+										   
+ 
 
     if(result){
         respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
@@ -751,5 +816,6 @@ module.exports = {
     editUser, 
     getUsers, 
     getUserCitizenById,
-    getLogClaridad ,
-    getUserCitizenDetailById ,updateEstateInbox};
+    getLogClaridad,
+    getUserCasilla,
+    existCE, getUserCitizenDetailById ,updateEstateInbox};

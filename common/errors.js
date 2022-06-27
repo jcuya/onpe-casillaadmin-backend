@@ -14,4 +14,5 @@ module.exports = Object.freeze({
     CREATE_USER_EXIST: {code: 120, message: 'Ya se encuentra registrado.'},
     NEW_PASSWORD_REGEX: {code:121, message:'La nueva contraseña no cumple con las políticas de seguridad.'},
     NOTIFICATION_NOT_VALID: {code:122, message:'Notificación no válida.'},
+    CITIZEN_NOT_EXIST: {code:123, message:'El destinatario no cuenta con casilla electrónica.'},
 });

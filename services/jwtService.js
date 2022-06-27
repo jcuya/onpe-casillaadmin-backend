@@ -41,7 +41,7 @@ const verifyToken = async (token, profile) => {
     return false;
 }
 
-const expired = 60 * 60 * 24; // 24 horas
+const expired = 60 * 60 * 1; // 1 horas
 
 const generateServiceToken = async (_id, user_service) => {
     let data = {

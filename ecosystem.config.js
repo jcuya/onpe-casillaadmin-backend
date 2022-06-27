@@ -32,11 +32,18 @@ module.exports = {
             AWS_REGION_SES_MAIL: 'SISEN <proyectos.sgiid@gmail.com>',
             AWS_ACCESS_KEY_ID_SES: 'AKIAUHWOMIT4EZUJYI5T',
             AWS_SECRET_ACCESS_KEY_SES: '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',
-            RECAPTCHA_SECRET: '6LeFgcMZAAAAAJW0e3Qoh0VcAeYQ4UCqD58VkvKf',
+            RECAPTCHA_SECRET: '6Ld8Z2oeAAAAAA25dAPDAZp-uCgc3clGE2MywrKl',
             URL_RENIEC: 'http://192.168.48.69:8080/ws_padron_reniec/api/padron/dni',
             URL_SUNAT: 'https://ws3.pide.gob.pe/Rest/Sunat/DatosPrincipales',
             CODIGO_RENIEC: 'bgeCmJjIcGy8J9TECc5Lsw==',
             CLAVE_RENIEC: 'FeD0Ea74o2GwGWeeO9aNl9epmhlSrxJ6rka1kG9axlg=',
+            EMAIL_HOST:'192.168.48.87',
+     	    EMAIL_PORT:25,
+    	    EMAIL_USER:'casillaelectronica@onpe.gob.pe',
+    	    EMAIL_ORIGEN:'casillaelectronica@onpe.gob.pe',
+    	    EMAIL_PASSWORD:'password',
+    	    EMAIL_ANONYMOUS:'true',
+    	    EMAIL_SECURE:'false',
             WS_CLARIDAD: 'http://192.168.48.159:9001/apiClaridad/candidato/findByDocumentoIdentidad'
         }
     }]

@@ -5,13 +5,16 @@ const utils = require('./../common/utils');
 const userService = require('./../services/userService');
 const candidateService = require('./../services/candidateService');
 const inboxService = require('./../services/inboxService');
-const emailService = require('./../services/emailService')
+const emailService = require('./../services/emailService');
 const jwtService = require('./../services/jwtService');
 const appConstants = require('./../common/appConstants');
 const errors = require('./../common/errors');
 const fs = require('fs');
 const request = require('request-promise');
 const logger = require('./../server/logger').logger;
+
+const typeFiles = ["application/pdf", "image/jpg", "image/jpeg", "image/png", "image/bmp", "image/x-ms-bmp"];
+
 const users = async(req, res, next) => {
     const { search, page, count } = req.body;
 
@@ -72,24 +75,26 @@ const person = async(req, res, next) => {
 
 const createBox = async(req, res, next) => {
 
-    console.log("USEREEEER", req)
+    console.log("USEREEEER", req);
     let box = req.fields;
     let files = req.files;
 
     console.log("FILEEEEEEEEEE", files)
     let countFiles = Object.keys(files).length;
 
-    if (utils.isEmpty(box.docType) ||
-        utils.isEmpty(box.doc) ||
-        utils.isEmpty(box.email) ||
-        utils.isEmpty(box.cellphone) ||
-        utils.isEmpty(box.address) ||
-        utils.isEmpty(box.acreditation_type)) {
-        return res.sendStatus(400);
+    if (utils.isEmpty(box.box_doc_type) ||
+        utils.isEmpty(box.box_doc) ||
+        utils.isEmpty(box.box_email) ||
+        utils.isEmpty(box.user_cellphone) ||
+        utils.isEmpty(box.box_address) ||
+        utils.isEmpty(box.box_acreditation_type) ||
+        Object.keys(files).filter((x) => x.match(/^file[0-9]{1,3}$/g)).length == 0 ||
+        countFiles == 0) {
+        return res.status(400).json({success: false, error: "Datos no válidos"});
     }
 
-    if (!utils.validNumeric(box.cellphone) || box.cellphone.length < 9) {
-        return res.sendStatus(400);
+    if (!utils.validNumeric(box.user_cellphone) || box.user_cellphone.length < 9) {
+        return res.status(400).json({success: false, error: "Celular no válido"});
     }
 
     let _files = [];
@@ -101,19 +106,19 @@ const createBox = async(req, res, next) => {
     let isValid = true;
     let message = "";
     for await (file of _files) {
-        if(files['file' + file.index].size == 0 || files['file' + file.index].size > 1048576 * 3) {
+        if(files['file' + file.index].size == 0 || files['file' + file.index].size > appConstants.TAM_MAX_FILE) {
             isValid = false;
             message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} con tamaño no válido`;
             break;
         }
-        if(files['file' + file.index].type != "application/pdf") {
+        if(!typeFiles.includes(files['file' + file.index].type)) {//if(files['file' + file.index].type != "application/pdf") {
             isValid = false;
-            message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} sólo en formato PDF`;
+            message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} sólo en formato PDF, JPEG, JPG, PNG o BMP`;
             break;
         }
-        const signedPdfBuffer = fs.readFileSync(files['file' + file.index].path);
-        let verified = (Buffer.isBuffer(signedPdfBuffer) && signedPdfBuffer.lastIndexOf("%PDF-") === 0 && signedPdfBuffer.lastIndexOf("%%EOF") > -1);
-        if(!verified) {
+        const signedFile = fs.readFileSync(files['file' + file.index].path);
+        //let verified = (Buffer.isBuffer(signedFile) && signedFile.lastIndexOf("%PDF-") === 0 && signedFile.lastIndexOf("%%EOF") > -1);
+        if(!validatebyteFile(files['file' + file.index].type, signedFile)) {
             isValid = false;
             message+= ((message.length> 0) ? ", " : "") + `El Archivo ${file.index} está dañado o no es válido`;
         }
@@ -121,8 +126,8 @@ const createBox = async(req, res, next) => {
 
     if(!isValid) return res.status(400).json({success: false, error: message});
 
-    let userExist = await userService.getUserCitizen(box.docType, box.doc);
-    let emailExist = await userService.getEmailCitizen2(box.email);
+    let userExist = await userService.getUserCitizen(box.box_doc_type, box.box_doc);
+    let emailExist = await userService.getEmailCitizen2(box.box_email);
 
     if (userExist.success) {
         return res.status(400).json({ success: false, error: errors.CREATE_BOX_EXIST_BOX_TO_CANDIDATE.message });
@@ -136,7 +141,7 @@ const createBox = async(req, res, next) => {
             files['file' + file.index].path,
             appConstants.PATH_BOX,
             files['file' + file.index].name,
-            box.doc,
+            box.box_doc,
             Date.now(),
             false,
             false
@@ -150,6 +155,23 @@ const createBox = async(req, res, next) => {
         return res.status(400).json({ success: false, error: result.error });
     }
     return res.json({ success: true });
+}
+
+const validatebyteFile = (typeFile, signedFile) => {
+    switch(typeFile) {
+        case "application/pdf":
+            return (Buffer.isBuffer(signedFile) && signedFile.lastIndexOf("%PDF-") === 0 && signedFile.lastIndexOf("%%EOF") > -1);
+        case "image/jpg": 
+        case "image/jpeg": 
+            return (/^(ffd8ffe([0-9]|[a-f]){1}$)/g).test(signedFile.toString('hex').substring(0, 8));
+        case "image/png":
+            return signedFile.toString('hex').startsWith("89504e47");
+        case "image/bmp":
+        case "image/x-ms-bmp":
+            return signedFile.toString('hex').startsWith("424d");
+        default:
+            return false;
+    }
 }
 
 const searchPerson = async(req, res, next) => {
@@ -392,9 +414,6 @@ const getUserCitizenById = async(req, res, next) => {
     return res.json(result);
 }
 
-
-
-
 const getUserCitizenDetailById = async(req, res, next) => {
     const { id } = req.query;
 
@@ -421,13 +440,83 @@ const updateEstateInbox = async(req, res, next) => {
     let result = await userService.updateEstateInbox(iduser,estado_,motivo_ ,name, email);
     return res.json(result);
 }
-
 const validarLogClaridad = async(req, res, next) => {
     let result = {};
     userService.getLogClaridad();
     result.message = `Se inicia el proceso para enviar notificaciones no registradas`;
     return res.json(result);
 }
+
+const validarCasilla = async(req, res, next) => {
+    let casilla = req.fields;
+    let [isValid, message] = validarCampos(casilla);
+    if(!isValid) {
+        return res.status(400).send({success: false, message: message});
+    }
+    const result = await userService.getUserCasilla(casilla.docType, casilla.doc);
+    return res.status(!result ? 404 : 200).json({"success":result.success, "user":result.user, "message":(result.success) ? result.message : result.error});
+}
+
+function validarCampos(casilla) {
+    let countFields = Object.keys(casilla).length;
+    let isValid = true;
+    let message = "";
+    
+    if(utils.isEmpty(casilla.docType)
+        || utils.isEmpty(casilla.doc)) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") + "Datos no válidos";
+    }
+    let docType_ = ["dni", "ce"];
+    if(!docType_.includes(casilla.docType)) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") + "Tipo de documento no válido";
+    }
+    let doc_ = new String(casilla.doc).toString();
+    if(casilla.docType == "dni" && doc_.length != 8) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") + "Documento no válido";
+    }
+    if(casilla.docType == "ce" && (doc_.length < 8 || doc_.length > 12)) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") + "Documento no válido";
+    }
+    if(countFields != 2) {
+        isValid = false;
+        message+= ((message.length> 0) ? ", " : "") + "Número de campos no válido";
+    }
+
+    return [isValid, message];
+}
+
+const searchCE = async (req, res, next) => {
+    const { doc, type } = req.query;
+  
+    let exist = await userService.existCE(doc, type);
+  
+    if (exist) {
+      let response = {
+        success: true,
+        name: exist.name,
+        lastname: exist.lastname != null ? exist.lastname : null,
+        second_lastname: exist.second_lastname != null ? exist.second_lastname : null
+      }
+      return res.json(response);
+    }
+    return res.json({ success: false});
+};
+
+const searchCasilla = async (req, res, next) => {
+    const { doc, type } = req.query;
+  
+    let userExist = await userService.getUserCitizen(type, doc);
+  
+    if (userExist.success) {
+      return res.json({ success: false, error: errors.CREATE_BOX_EXIST_BOX_TO_CANDIDATE });
+    }
+    return res.json({ success: true });
+  
+};
 
 module.exports = { 
     users, 
@@ -444,4 +533,7 @@ module.exports = {
     getUserCitizenById, 
     download,
     validarLogClaridad,
+    validarCasilla,
+    searchCE,
+    searchCasilla,
     getUserCitizenDetailById,updateEstateInbox ,sendEmailEstateInbox };

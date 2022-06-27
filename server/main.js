@@ -13,6 +13,7 @@ const app = express();
 const server = require('http').Server(app);
 const router = require('../controller/_index')();
 const appConstants = require('../common/appConstants');
+const path = require('path');
 
 app.use(helmet());
 app.use(cookieSession({
@@ -23,6 +24,7 @@ app.use(cookieSession({
     httpOnly: true
   }));
 app.set('trust proxy', '127.0.0.1');
+app.use('/', express.static(path.join(__dirname, '../error/')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cors({

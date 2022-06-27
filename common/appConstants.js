@@ -30,5 +30,7 @@ module.exports = Object.freeze({
     CLARIDAD: 'CLARIDAD',
     apiKeyClaridad: '68309492-77a7-4697-8510-23712aae1dd2',
     COOKIE_KEY: '0n9E5i3eN$',
-    SECRET_KEY: '5iseN-$2022'
+    SECRET_KEY: '5iseN-$2022',
+    TAM_MAX_FILE: 10 * 1048576, // 10 mb
+    MAX_FILES_AUTOMATIC_NOTIFICATION: 3,
 });
