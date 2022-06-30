@@ -105,7 +105,7 @@ module.exports = () => {
     router.get('/get-user', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.getUserCitizenById);
-    router.get('/get-user-info-detail', function(req, res, next) {
+   /* router.get('/get-user-info-detail', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
     }, userController.getUserCitizenDetailById);
     router.post('/updateEstateInbox', function(req, res, next) {
@@ -113,6 +113,16 @@ module.exports = () => {
     }, userController.updateEstateInbox);
     router.get('/download-pdf', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);
+    }, userController.download);*/
+    
+    router.get('/get-user-info-detail', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_REGISTER], req, res, next);
+    }, userController.getUserCitizenDetailById);
+    router.post('/updateEstateInbox', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_REGISTER], req, res, next);
+    }, userController.updateEstateInbox);
+    router.get('/download-pdf', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_REGISTER], req, res, next);
     }, userController.download);
 
 

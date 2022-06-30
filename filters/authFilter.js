@@ -16,7 +16,7 @@ module.exports = (req, res, next) => {
         try {
             req.user = jwt.verify(token, process.env.AUTH_JWT_HMACKEY);
 
-            if(req.user.profile === appConstants.PROFILE_NOTIFIER || req.user.profile === appConstants.PROFILE_REGISTER){
+            if(req.user.profile === appConstants.PROFILE_NOTIFIER || req.user.profile === appConstants.PROFILE_REGISTER || req.user.profile === appConstants.PROFILE_EVALUATOR){
                 req.token = token;
 
                 return next();
