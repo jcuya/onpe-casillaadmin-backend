@@ -16,9 +16,9 @@ const login = async(req, res, next) => {
 
     console.log("la ipxxxxxxx", req.ip);
 
-    if (!await recaptchaService.isValid(recaptcha, req.ip)) {
+    /*if (!await recaptchaService.isValid(recaptcha, req.ip)) {
         return res.sendStatus(400);
-    }
+    }*/
 
     const result = await loginService.login(docType, doc, password);
 

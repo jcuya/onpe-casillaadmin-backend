@@ -764,6 +764,7 @@ const getUserCitizenDetailById = async(id) => {
 
 
 const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
+    console.log("datooooooooooooooooooooos update sttate inbox", "  --- " , iduser, "  --- " , estado, "  --- " , name , "  --- " , email);
     const db = await mongodb.getDb();
     let objectMotivo = {}; 
     const inbox = await db.collection(mongoCollections.INBOX).findOne({
@@ -789,7 +790,7 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
 
     let password = '';
     let userDoc='';
-    if(type === "APROBADO"){
+    if(estado === "APROBADO"){
         let user = await db.collection(mongoCollections.USERS).findOne({
             _id: iduser,
         });
