@@ -786,12 +786,24 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
             update_date: new Date(),
         }
     });
-  
-										   
- 
+
+    let password = '';
+    let userDoc='';
+    if(type === "APROBADO"){
+        let user = await db.collection(mongoCollections.USERS).findOne({
+            _id: iduser,
+        });
+        password = crypto.randomBytes(5).toString('hex');
+        user.password = password;
+        userDoc = user.doc;
+
+        let resultUser = await db.collection(mongoCollections.USERS).update({ _id: user._id }, {
+            $set: user
+        });
+    }
 
     if(result){
-        respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);
+        respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado, password, userDoc);
     }
 
     //respuestaEmail = await emailService.sendEmailEstateInbox(name , email, estado);

@@ -14,6 +14,8 @@ const login = async(req, res, next) => {
         return res.sendStatus(400);
     }
 
+    console.log("la ipxxxxxxx", req.ip);
+
     if (!await recaptchaService.isValid(recaptcha, req.ip)) {
         return res.sendStatus(400);
     }

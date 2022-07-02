@@ -313,53 +313,70 @@ const sendEmailNewNotification = async (name, email) => {
   return false;
 }
 
-const sendEmailEstateInbox = async (name, email,type) => {
+const sendEmailEstateInbox = async (name, email,type, password, doc) => {
 
 
     var htmlValidate = "";
  
 
    if(type === "APROBADO"){
-       htmlValidate = `
-       <html>
-       <body>  
-           <div style="width: 100%; max-width: 700px; margin: 0 auto;">
-               <div style="text-align: center; padding-top: 20px;">
-                   <table style="border:none; width: 100%;background: #062b56;">
-                       <tr>
-                           <td style="text-align: left;  padding-left: 10px;  font-size: 50px;  line-height: 48px;  font-weight: bold;   font-family: system-ui;    color: #fff;">
-                               SISEN
-                           </td>                    
-                           <td style=" text-align: right; font-size: 15px; line-height: 48px;  font-family: system-ui; color: #fff; padding-right: 10px;">
-                               Sistema de Notificación Electrónica de la ONPE
-                           </td>
-                       </tr>
-                   </table>
-               </div>
-               <hr>
-               <p style="font-family:arial,helvetica,sans-serif; font-size:24px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
-                   Hola ${name},
-               </p>
-               <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
-                   Recibiste una notificación, para verla ingresa a tu casilla electrónica haciendo clic
-                   <a href="${url_front_citizen}" style="font-family:arial,helvetica,sans-serif; font-size:24px; font-weight: 700; color:#062b56; text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px; text-decoration: none;">
-                       aquí
-                   </a>
-               </p>
-               <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
-                   No olvides revisar periódicamente tu casilla electrónica.<br>
-               </p>
-               <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
-                   <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
-               </div>
-               <p style="font-family:arial,helvetica,sans-serif; font-size:12px; color:rgb(80,83,90);text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px;">
-                   Jr. Washington 1894, Cercado de Lima<br>
-                   Central Telefónica: (01) 417-0630 / L - S 07:00 h - 18:00 h 
-               </p>
-           </div>
-       </body>
-       </html>                
-   `
+     htmlValidate = `
+            <html>
+            <body>  
+                <!-- En DIV's (Ini) -->
+                <div style="width: 100%; max-width: 700px; margin: 0 auto;">
+                    <div style="text-align: center; padding-top: 20px;">
+                        <table style="border:none; width: 100%;background: #062b56;">
+                            <tr>
+                                <td style="text-align: left;  padding-left: 10px;  font-size: 50px;  line-height: 48px;  font-weight: bold;   font-family: system-ui;    color: #fff;">
+                                    SISEN
+                                </td>                    
+                                <td style=" text-align: right; font-size: 15px; line-height: 48px;  font-family: system-ui; color: #fff; padding-right: 10px;">
+                                    Sistema de Notificación Electrónica de la ONPE
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <hr>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:24px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                        Hola ${name},
+                    </p>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                        Se creó tu casilla electrónica con éxito. Para ingresar al Sistema de Notificación Electrónica de la ONPE (SISEN), sigue los siguientes pasos:
+                    </p>
+                    <div style="font-family:arial,helvetica,sans-serif; text-align:left; margin: 20px 0 20px 0; padding: 0 10px 0 10px;">
+                        <table style="font-family:arial,helvetica,sans-serif;">                        
+                            <tr>
+                                <td style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);">
+                                    1. Ingresa sus credenciales de acceso <br>
+                                       Usuario: ${doc}
+                                       Contraseña: <b>${password}</b>
+                                       a la siguiente ruta, haciendo clic en: <br>
+                                       <a href="${url_front_citizen}">${url_front_citizen}</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);">
+                                    2. El sistema te solicitará cambiarla y crear una nueva contraseña.
+                                </td>
+                            </tr>                                               
+                        </table>                    
+                    </div>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
+                        No olvides revisar siempre tu casilla electrónica.<br>
+                    </p>
+                    <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
+                        <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
+                    </div>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:12px; color:rgb(80,83,90);text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px;">
+                        Jr. Washington 1894, Cercado de Lima<br>
+                        Central Telefónica: (01) 417-0630 / L - S 07:00 h - 18:00 h 
+                    </p>
+                </div>
+            </body>
+            </html>        
+        
+        `;
    }
 
    if(type === "DESAPROBADO"){
