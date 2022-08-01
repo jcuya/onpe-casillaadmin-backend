@@ -126,8 +126,8 @@ const createBox = async(req, res, next) => {
 
     if(!isValid) return res.status(400).json({success: false, error: message});
 
-    let userExist = await userService.getUserCitizen(box.box_doc_type, box.box_doc);
-    let emailExist = await userService.getEmailCitizen2(box.box_email);
+    let userExist = await inboxService.getApprovedInboxByDoc(box.box_doc_type, box.box_doc);
+    let emailExist = await inboxService.getApprovedInboxByEmail(box.box_email);
 
     if (userExist.success) {
         return res.status(400).json({ success: false, error: errors.CREATE_BOX_EXIST_BOX_TO_CANDIDATE.message });
@@ -508,8 +508,8 @@ const searchCE = async (req, res, next) => {
 
 const searchCasilla = async (req, res, next) => {
     const { doc, type } = req.query;
-  
-    let userExist = await userService.getUserCitizen(type, doc);
+
+    let userExist = await inboxService.getApprovedInboxByDoc(type, doc);
   
     if (userExist.success) {
       return res.json({ success: false, error: errors.CREATE_BOX_EXIST_BOX_TO_CANDIDATE });

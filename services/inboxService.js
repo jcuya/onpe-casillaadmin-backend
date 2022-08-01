@@ -37,6 +37,72 @@ const getInbox = async (docType, doc) => {
 
 }
 
+const getApprovedInboxByDoc = async (docType, doc) => {
+    try {
+        const ESTADO_APROBADO = 'APROBADO';
+        const db = await mongodb.getDb();
+
+        let _filter = {
+            $or: [
+                {
+                    doc: doc,
+                    doc_type: docType,
+                    status: ESTADO_APROBADO,
+                },
+                {
+                    doc: doc,
+                    doc_type: docType,
+                    status: null,
+                }
+            ]
+        }
+
+        let inbox = await db.collection(mongoCollections.INBOX).findOne(_filter);
+
+        if (!inbox) {
+            logger.warn('inbox ' + doc + '/' + docType + ' approved not exist');
+            return {success: false};
+        }
+
+        return {success: true};
+
+    } catch (err) {
+        logger.error(err);
+        return {success: false, error: errors.INTERNAL_ERROR};
+    }
+}
+
+const getApprovedInboxByEmail = async (correo) => {
+    try {
+        const ESTADO_APROBADO = 'APROBADO';
+        const db = await mongodb.getDb();
+
+        let _filter = {$or:[
+                {
+                    email: correo,
+                    status: ESTADO_APROBADO,
+                },
+                {
+                    email: correo,
+                    status: null,
+                }
+            ]}
+
+        let inbox = await db.collection(mongoCollections.INBOX).findOne(_filter);
+
+        if (!inbox) {
+            logger.error('inbox with email ' + correo + ' approved not exist');
+            return {success: false};
+        }
+
+        return {success: true};
+
+    } catch (err) {
+        logger.error(err);
+        return {success: false, error: errors.INTERNAL_ERROR};
+    }
+}
+
 const getInboxUserCitizen = async (docType, doc, jwt) => {
     try {
         const db = await mongodb.getDb();
@@ -116,4 +182,4 @@ const downloadPdfInbox = async (idInbox, pdf_type) => {
     }
 }
 
-module.exports = {getInbox, getInboxUserCitizen, downloadPdfInbox};
+module.exports = {getInbox, getInboxUserCitizen, downloadPdfInbox, getApprovedInboxByDoc, getApprovedInboxByEmail};

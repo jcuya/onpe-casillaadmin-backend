@@ -159,7 +159,7 @@ const sendEmailNewUserAws = async (name, email, password, doc) => {
                         <table style="font-family:arial,helvetica,sans-serif;">     
                             <tr>                   
                                 <td style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);">
-                                    1. Ingresa sus credenciales de acceso <br>
+                                    1. Ingresa tus credenciales de acceso <br>
                                         Usuario: ${doc}
                                         Contraseña: <b>${password}</b>
                                         a la siguiente ruta, haciendo clic en: <br>
@@ -174,6 +174,10 @@ const sendEmailNewUserAws = async (name, email, password, doc) => {
                         </table>                    
                     </div>
 
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
+                        No olvides revisar periódicamente tu casilla electrónica. En caso presentes dificultades para el uso y acceso a la casilla electrónica, 
+                        puedes comunicarte al siguiente correo electrónico: <a href="mailto:sisen@onpe.gob.pe">sisen@onpe.gob.pe</a><br>
+                    </p>
                     <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
                         <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
                     </div>
@@ -239,7 +243,7 @@ const sendEmailNewUserCitizenWithAws = async (name, email, password, doc) => {
                         <table style="font-family:arial,helvetica,sans-serif;">                        
                             <tr>
                                 <td style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);">
-                                    1. Ingresa sus credenciales de acceso <br>
+                                    1. Ingresa tus credenciales de acceso <br>
                                        Usuario: ${doc}
                                        Contraseña: <b>${password}</b>
                                        a la siguiente ruta, haciendo clic en: <br>
@@ -254,7 +258,8 @@ const sendEmailNewUserCitizenWithAws = async (name, email, password, doc) => {
                         </table>                    
                     </div>
                     <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
-                        No olvides revisar siempre tu casilla electrónica.<br>
+                        No olvides revisar periódicamente tu casilla electrónica. En caso presentes dificultades para el uso y acceso a la casilla electrónica, 
+                        puedes comunicarte al siguiente correo electrónico: <a href="mailto:sisen@onpe.gob.pe">sisen@onpe.gob.pe</a><br>
                     </p>
                     <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
                         <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
@@ -313,7 +318,7 @@ const sendEmailNewNotification = async (name, email) => {
   return false;
 }
 
-const sendEmailEstateInbox = async (name, email,type, password, doc) => {
+const sendEmailEstateInbox = async (name, email,type, password, doc, objectMotivo) => {
 
 
     var htmlValidate = "";
@@ -348,7 +353,7 @@ const sendEmailEstateInbox = async (name, email,type, password, doc) => {
                         <table style="font-family:arial,helvetica,sans-serif;">                        
                             <tr>
                                 <td style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);">
-                                    1. Ingresa sus credenciales de acceso <br>
+                                    1. Ingresa tus credenciales de acceso <br>
                                        Usuario: ${doc}
                                        Contraseña: <b>${password}</b>
                                        a la siguiente ruta, haciendo clic en: <br>
@@ -363,7 +368,8 @@ const sendEmailEstateInbox = async (name, email,type, password, doc) => {
                         </table>                    
                     </div>
                     <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
-                        No olvides revisar siempre tu casilla electrónica.<br>
+                        No olvides revisar periódicamente tu casilla electrónica. En caso presentes dificultades para el uso y acceso a la casilla electrónica, 
+                        puedes comunicarte al siguiente correo electrónico: <a href="mailto:sisen@onpe.gob.pe">sisen@onpe.gob.pe</a><br>
                     </p>
                     <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
                         <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
@@ -380,6 +386,10 @@ const sendEmailEstateInbox = async (name, email,type, password, doc) => {
    }
 
    if(type === "DESAPROBADO"){
+       const motivosList = Object.keys(objectMotivo)
+           .filter(key => objectMotivo[key]['value'])
+           .map((key) => '<li>'+ objectMotivo[key]['detalle']+'</li>');
+       const motivosText = '<ul>'+ motivosList.join('') +'</ul>';
        htmlValidate = `
        <html>
        <body>  
@@ -399,14 +409,28 @@ const sendEmailEstateInbox = async (name, email,type, password, doc) => {
                </div>
                <hr>
                <p style="font-family:arial,helvetica,sans-serif; font-size:24px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
-                   Hola ${name},
+                   Estimado ${name},
                </p>
                <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
-                   Hemos recibido su solicitud de creación de casilla electrónica y usted no cuenta con los requisitos establecidos por la ONPE.</p>
+                   Ponemos de su conocimiento que se ha recepcionado su solicitud de creación de casilla electrónica, el cual presentó vía la plataforma digital SISEN-ONPE.
+                   Al respecto, se advierte que dicha solicitud ha sido observada por el (los) siguiente (s) motivo (s):
+               </p>
+               <p>${motivosText}</p>
+               <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                    Le agradeceremos volver a ingresar a la plataforma digital SISEN-ONPE, para autenticar sus datos haciendo clic, 
+                    <a href="${url_front_citizen}" style="font-family:arial,helvetica,sans-serif; font-size:24px; font-weight: 700; color:#062b56; text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px; text-decoration: none;">
+                            aquí,
+                    </a>
+                    tomando en consideración la(s) observación(es) antes señalada(s), con la finalidad de crear su casilla electrónica de manera satisfactoria.
+               </p>
+               <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                    Atentamente,<br>
+                    ONPE
+               </p>
                <div style="font-family:arial,helvetica,sans-serif; text-align:left; margin: 20px 0 20px 0; padding: 0 10px 0 10px;"></div>
-                   <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
-                   <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
-                   </div>
+               <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
+               <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
+               </div>
                <p style="font-family:arial,helvetica,sans-serif; font-size:12px; color:rgb(80,83,90);text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px;">
                    Jr. Washington 1894, Cercado de Lima<br>
                    Central Telefónica: (01) 417-0630 / L - S 07:00 h - 18:00 h 
@@ -419,8 +443,8 @@ const sendEmailEstateInbox = async (name, email,type, password, doc) => {
    try {
      const html = htmlValidate;
 
- 
-     let result = await enviarCorreo(process.env.EMAIL_ORIGEN, email, 'Nueva Notificación - SISEN', html);
+     let title = type === "APROBADO"? 'Contraseña de acceso - SISEN' : 'Nueva Notificación - SISEN';
+     let result = await enviarCorreo(process.env.EMAIL_ORIGEN, email, title, html);
  
      logger.info(JSON.stringify({ message: `email sent to: ${email}`, result: result }));
  
@@ -464,14 +488,22 @@ const sendEmailNewNotificationWithAws = async (name, email) => {
                         Hola ${name},
                     </p>
                     <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
-                        Recibiste una notificación, para verla ingresa a tu casilla electrónica haciendo clic
+                        Ponemos de su conocimiento que cuenta con una notificación en su casilla electrónica SISEN-ONPE (Sistema de Notificaciones Electrónicas de la Oficina Nacional de Procesos Electorales).
+                    </p>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 0 10px;">
+                        Le sugerimos revisar su casilla electrónica a la brevedad posible, haciendo clic
                         <a href="${url_front_citizen}" style="font-family:arial,helvetica,sans-serif; font-size:24px; font-weight: 700; color:#062b56; text-align:center; margin: 20px 0 20px 0; padding: 0 10px 0 10px; text-decoration: none;">
                             aquí
                         </a>
                     </p>
                     <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
-                        No olvides revisar siempre tu casilla electrónica.<br>
+                        No olvides revisar siempre tu casilla electrónica.
                     </p>
+                    <p style="font-family:arial,helvetica,sans-serif; font-size:16px; color:rgb(80,83,90);text-align:justify; margin: 30px 0 0 0; padding: 0 10px 30px 10px;">
+                        Atentamente,<br>
+                        ONPE<br>
+                    </p>
+                    
                     <div style="background: #062b56; padding: 5px 10px; margin: 0 0 20px 0; text-align:right;">
                         <!-- <img src="img/onpeblanco.png" style="width: 40px; height: auto;" alt=""> -->
                     </div>
@@ -533,12 +565,12 @@ const transporter = nodemailer.createTransport({
 });
 
 const transporterAnonymous = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  tls: { rejectUnauthorized: process.env.EMAIL_SECURE === 'true' },
-  secure: process.env.EMAIL_SECURE === 'true',
-  debug: true,
-});
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    tls: { rejectUnauthorized: process.env.EMAIL_SECURE === 'true' },
+    secure: process.env.EMAIL_SECURE === 'true',
+    debug: true,
+});  
 
 const enviarCorreo = async (origen, destino, asunto, contenido) => {
   try {
@@ -549,9 +581,10 @@ const enviarCorreo = async (origen, destino, asunto, contenido) => {
       secure: process.env.EMAIL_SECURE === 'true',
       debug: true,
     });
-    const transport = process.env.EMAIL_ANONYMOUS === 'true' ? transporterAnonymous : transporter
-    result = await transport.verify();
-    logger.info(`Verificar servidor SMTP (Anonymous: ${process.env.EMAIL_ANONYMOUS} )`, result);
+    const transport = process.env.EMAIL_ANONYMOUS === 'true' ? transporterAnonymous : transporter;
+    //result = await transport.verify();
+    //logger.info(`Verificar servidor SMTP (Anonymous: ${process.env.EMAIL_ANONYMOUS} )`, result);
+    logger.info(`transport SMTP `, transport );
     await transport.sendMail({
       from: origen,
       to: destino,
@@ -566,4 +599,4 @@ const enviarCorreo = async (origen, destino, asunto, contenido) => {
 
 }
 
-module.exports = { sendEmailNewPassword, sendEmailNewUserCitizen, sendEmailNewUser, sendEmailNewNotification, enviarCorreo, sendEmailEstateInbox }
+module.exports = { sendEmailNewPassword, sendEmailNewUserCitizen, sendEmailNewUser, sendEmailNewNotification, sendEmailEstateInbox, enviarCorreo }
