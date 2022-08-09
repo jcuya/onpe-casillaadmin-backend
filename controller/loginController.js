@@ -16,7 +16,7 @@ const login = async(req, res, next) => {
 
     console.log("la ipxxxxxxx", req.ip);
 
-    if (!await recaptchaService.isValid(recaptcha, req.ip)) {
+    if (!await recaptchaService.isValid(recaptcha, req.ip)) {//Comentar el método para correr en local
         return res.sendStatus(400);
     }
 
