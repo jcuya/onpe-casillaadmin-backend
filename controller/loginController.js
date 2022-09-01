@@ -16,9 +16,9 @@ const login = async(req, res, next) => {
 
     console.log("la ipxxxxxxx", req.ip);
 
-    if (!await recaptchaService.isValid(recaptcha, req.ip)) {//Comentar el método para correr en local
+    /*if (!await recaptchaService.isValid(recaptcha, req.ip)) {
         return res.sendStatus(400);
-    }
+    }*/
 
     const result = await loginService.login(docType, doc, password);
 
@@ -31,6 +31,17 @@ const login = async(req, res, next) => {
     return res.json(response);
 }
 
+
+const logout = async (req, res, next) => {
+    let token = req.headers['authorization'];
+    if (!token) {
+        return res.sendStatus(401);
+    }
+    await loginService.logout(token)
+
+    return res.json({success: true});
+}
+
 const recoverPassword = async(req, res, next) => {
     const { docType, doc, recaptcha } = req.body;
 
@@ -38,9 +49,9 @@ const recoverPassword = async(req, res, next) => {
         return res.sendStatus(400);
     }
 
-    if (!await recaptchaService.isValid(recaptcha, req.ip)) {
+    /*if (!await recaptchaService.isValid(recaptcha, req.ip)) {
         return res.sendStatus(400);
-    }
+    }*/
 
     const result = await userService.recoverPassword(docType, doc);
 
@@ -71,4 +82,4 @@ const newPassword = async(req, res, next) => {
     return res.json({ success: true });
 }
 
-module.exports = { login, recoverPassword, newPassword };
+module.exports = { login, logout, recoverPassword, newPassword };

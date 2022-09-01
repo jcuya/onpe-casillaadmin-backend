@@ -12,11 +12,15 @@ const errors = require('./../common/errors');
 const fs = require('fs');
 const request = require('request-promise');
 const logger = require('./../server/logger').logger;
+const notificationService = require('./../services/notificationService');
+
+require('./../services/colas/kitchen');
+const placeOrder = require('./../services/colas/waiter');
 
 const typeFiles = ["application/pdf", "image/jpg", "image/jpeg", "image/png", "image/bmp", "image/x-ms-bmp"];
 
 const users = async(req, res, next) => {
-    const { search, page, count } = req.body;
+    const { search, page, count, estado, fechaInicio, fechaFin } = req.body;
 
     if (!page || !count) {
         return res.sendStatus(400);
@@ -27,7 +31,7 @@ const users = async(req, res, next) => {
         return res.sendStatus(400);
     }
 
-    let result = await userService.getUsersCitizen(search, page, count);
+    let result = await userService.getUsersCitizen(search, page, count, estado, fechaInicio, fechaFin);
 
     if (!result.success) {
         return res.json({ success: false, error: result.error });
@@ -97,6 +101,8 @@ const createBox = async(req, res, next) => {
         return res.status(400).json({success: false, error: "Celular no válido"});
     }
 
+    box.box_email = box.box_email.toLowerCase();
+
     let _files = [];
     let attachments = [];
     for (let i = 1; i <= countFiles; i++) {
@@ -151,9 +157,15 @@ const createBox = async(req, res, next) => {
     let usuarioRegistro = req.user.name + ' ' + req.user.lastname;
     let result = await userService.createUserCitizen(box, req.user.id, attachments, usuarioRegistro);
     
-    if (!result.success) {
-        return res.status(400).json({ success: false, error: result.error });
-    }
+
+    placeOrder.placeOrder(box)
+            .then((job) => {
+                console.log('\n Se creó la casilla y ahora se inicia la notificación \n ');
+            })
+            .catch(() => {
+                console.log('\n Se creó la casilla y No se pudo realizar la notificación" \n ');
+            });
+    
     return res.json({ success: true });
 }
 
@@ -426,6 +438,7 @@ const getUserCitizenDetailById = async(req, res, next) => {
 
 
 const updateEstateInbox = async(req, res, next) => {
+
         const body= req.body;
     var iduser = body.idUser;
     var estado_ = body.estado;
@@ -437,8 +450,26 @@ const updateEstateInbox = async(req, res, next) => {
     if (utils.isEmpty(iduser)) {
         return res.sendStatus(400);
     }
-    let result = await userService.updateEstateInbox(iduser,estado_,motivo_ ,name, email);
-    return res.json(result);
+    const result = await userService.updateEstateInbox(iduser,estado_,motivo_ ,name, email);
+
+    if(result.success && estado_==='APROBADO'){
+
+        let datosFirma = {
+                iduser: iduser,
+                pendingInbox: result.pendingInbox
+            }
+
+        placeOrder.placeOrderCiudadano(datosFirma)
+            .then((job) => {
+                console.log('\n Se aprobó la casilla y ahora se inicia la notificación \n ');
+            })
+            .catch(() => {
+                console.log('\n Se aprobó la casilla y No se pudo realizar la notificación" \n ');
+            });
+
+    }
+    
+     return res.json(result); 
 }
 const validarLogClaridad = async(req, res, next) => {
     let result = {};
@@ -536,4 +567,4 @@ module.exports = {
     validarCasilla,
     searchCE,
     searchCasilla,
-    getUserCitizenDetailById,updateEstateInbox ,sendEmailEstateInbox };
+    getUserCitizenDetailById,updateEstateInbox ,sendEmailEstateInbox};

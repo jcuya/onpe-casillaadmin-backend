@@ -584,7 +584,7 @@ const enviarCorreo = async (origen, destino, asunto, contenido) => {
     const transport = process.env.EMAIL_ANONYMOUS === 'true' ? transporterAnonymous : transporter;
     //result = await transport.verify();
     //logger.info(`Verificar servidor SMTP (Anonymous: ${process.env.EMAIL_ANONYMOUS} )`, result);
-    logger.info(`transport SMTP `, transport );
+    //logger.info(`transport SMTP `, transport );
     await transport.sendMail({
       from: origen,
       to: destino,

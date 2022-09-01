@@ -44,7 +44,10 @@ module.exports = {
     	    EMAIL_PASSWORD:'password',
     	    EMAIL_ANONYMOUS:'true',
     	    EMAIL_SECURE:'false',
-            WS_CLARIDAD: 'http://192.168.48.159:9001/apiClaridad/candidato/findByDocumentoIdentidad'
+            WS_CLARIDAD: 'http://192.168.48.159:9001/apiClaridad/candidato/findByDocumentoIdentidad',
+            URL_AGENTE: 'http://192.168.48.106:8080/firmaperuagente/api/signature',
+            CREDENCIAL_AGENTE: 'XEzIPretAXEs0ecReThes!kocheXlR',
+            NOTIFICADOR_AGENTE: '10745022'
         }
     }]
 };

@@ -25,6 +25,7 @@ module.exports = () => {
     });
     
     router.post('/login', loginController.login);
+    router.post('/logout', loginController.logout);
     router.post('/recover-password', loginController.recoverPassword);
     router.post('/new-password', authFilter, loginController.newPassword);
 

@@ -16,39 +16,85 @@ const axios = require('axios');
 const fs = require('fs');
 //const mkdirp = require("mkdirp");
 
-const getUsersCitizen = async(search, page, count) => {
+const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin) => {
     try {
         const db = await mongodb.getDb();
         let _filter = {
-            profile: appConstants.PROFILE_CITIZEN,
-            $or: [{ name: new RegExp(diacriticSensitiveRegex(search), 'i') }, { lastname: new RegExp(diacriticSensitiveRegex(search), 'i') }, { organization_name: new RegExp(diacriticSensitiveRegex(search), 'i') }, { doc: new RegExp(diacriticSensitiveRegex(search)) }]
-
+            $or: [
+                {email: new RegExp(diacriticSensitiveRegex(search), 'i')},
+                {doc: new RegExp(diacriticSensitiveRegex(search))}]
+        }
+        if(estado != '' && estado != 'REGISTRO INTERNO'){
+            _filter.status = estado;
+        }
+        if(estado == 'REGISTRO INTERNO'){
+            _filter.status = null;
         }
 
-        let cursor = await db.collection(mongoCollections.USERS).find(_filter).collation({ locale: "en", strength: 1 }).sort({ created_at: -1 }).skip(page > 0 ? ((page - 1) * count) : 0).limit(count);
+        if (isNaN(fechaInicio) && !isNaN(Date.parse(fechaInicio))) {
+            let fechaInicial = new Date(fechaInicio);
+            fechaInicial.setTime(fechaInicial.getTime() + (5*60*60*1000));
+
+            _filter.created_at = { $gt : fechaInicial };
+        }
+        if (isNaN(fechaFin) && !isNaN(Date.parse(fechaFin))) {
+            let fechaFinal = new Date(fechaFin);
+            fechaFinal.setDate(fechaFinal.getDate() + 1);
+            fechaFinal.setTime(fechaFinal.getTime() + (5*60*60*1000));
+
+            if(_filter.created_at){
+                _filter.created_at.$lt = fechaFinal;
+            }else{
+                _filter.created_at = { $lt : fechaFinal };
+            }
+        }
+
+        let cursor = await db.collection(mongoCollections.INBOX).find(_filter).sort({ created_at: -1 }).skip(page > 0 ? ((page - 1) * count) : 0).limit(count);
 
         let recordsTotal = await cursor.count();
 
         let users = [];
 
-        for await (const user of cursor) {
-            var name;
-            if(user.doc_type === 'RUC'){
-                name = `${user.name}`;
-            }else{
-                name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
-            }
-
-            let inbox = await db.collection(mongoCollections.INBOX).findOne({
-                register_user_id: user._id + "",
+        for await (const inbox of cursor) {
+            let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
+                $or: [{ inbox_id: inbox._id }, { inbox_id: inbox._id.toString() }]
             });
-            console.log("INB0000X" , inbox)
 
-            if(inbox == null){
-                inbox = { status : ""}
+            if (!user_inbox) {
+                user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
+                    doc_type: inbox.doc_type,
+                    doc: inbox.doc
+                });
             }
-             
-            users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, createUser: user.create_user, estate_inbox : inbox.status });
+
+            let user;
+            if (user_inbox.user_id != null) {
+                user = await db.collection(mongoCollections.USERS).findOne({
+                    _id: ObjectID(user_inbox.user_id.toString())
+                });
+            } else {
+                user = await db.collection(mongoCollections.USERS).findOne({
+                    doc_type: inbox.doc_type,
+                    doc: inbox.doc,
+                    profile: appConstants.PROFILE_CITIZEN
+                });
+            }
+
+            if(user != null){
+                var name;
+                if(user.doc_type === 'RUC'){
+                    name = `${user.name}`;
+                }else{
+                    name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
+                }
+
+                console.log("INB0000X" , inbox)
+                if(inbox.status == null){
+                    inbox.status = "";
+                }
+
+                users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status });
+            }
         }
 
         return { success: true, recordsTotal: recordsTotal, users: users };
@@ -161,8 +207,8 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
         let _newUser = await db.collection(mongoCollections.USERS).insertOne(newUser);
         logger.info('success insert in users');
 
-        newUserInbox.user_id = _newUser.ops[0]._id;
-        newUserInbox.inbox_id = _newInbox.ops[0]._id;
+        newUserInbox.user_id = _newUser.insertedId;
+        newUserInbox.inbox_id = _newInbox.insertedId;
 
         await db.collection(mongoCollections.USER_INBOX).insertOne(newUserInbox);
         logger.info('success insert in user_inbox');
@@ -171,8 +217,6 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
         //let name = `${box.name} ${box.lastname} ${box.second_lastname != undefined?box.second_lastname:''}`;
         await emailService.sendEmailNewUserCitizen(name, newUser.email, password, box.box_doc);
 
-        // Consultar servicio de claridad
-        searchCLARIDAD(box.box_doc, box.box_doc_type, true);
         return { success: true };
 
     } catch (err) {
@@ -193,9 +237,11 @@ const searchCLARIDAD = async (dniCandidato, tipoDoc, generarPassword) => {
                 dniCandidato: dniCandidato,
                 generarPassword: generarPassword
             },
-            timeout: 5000
+            timeout: 15000
         });
         result.success = true;
+        result.esCandidato = response.data.success;
+        result.respuestaClaveGenerada = response.data.data.clave;
         result.statusCode = response.statusCode;
     } catch (error) {
         logger.error(error);
@@ -272,10 +318,10 @@ const getUserCitizen = async(docType, doc) => {
             success: true,
             message: "Tiene casilla electrónica",
             user: {
-                names: user.name + ' ' + user.lastname + ' ' + user.second_lastname,
+                names: user.name + ' ' + user.lastname + (user.second_lastname != undefined ? ' ' + user.second_lastname : ''),
                 name: user.name,
                 lastname: user.lastname,
-                second_lastname: user.second_lastname,
+                second_lastname: user.second_lastname != undefined ? user.second_lastname : '',
                 organization_doc: user.organization_doc,
                 organization_name: user.organization_name
             }
@@ -294,7 +340,18 @@ const getUserCasilla = async(docType, doc) => {
         let user = await db.collection(mongoCollections.USERS).findOne({
             doc_type: docType,
             doc: doc,
-            profile: appConstants.PROFILE_CITIZEN
+            profile: appConstants.PROFILE_CITIZEN,
+            $or: [
+                {
+                  'status': {
+                    '$eq': 'APROBADO'
+                  }
+                }, {
+                  'status': {
+                    '$exists': false
+                  }
+                }
+              ]  
         });
 
         if (!user) {
@@ -307,7 +364,9 @@ const getUserCasilla = async(docType, doc) => {
             message: "Tiene casilla electrónica",
             user: {
                 email: user.email,
-                cellphone: user.cellphone
+                cellphone: user.cellphone,
+                address: user.address != undefined ? user.address : 'No registrado',
+                ubigeo: user.Ubigeo != undefined ? user.Ubigeo : 'No tiene ubigeo',
             }
         };
 
@@ -571,7 +630,7 @@ const deleteUser = async(docType, doc) => {
 
         await user_inboxes.forEach(async(element) => {
             await db.collection(mongoCollections.INBOX).deleteOne({
-                _id: ObjectID(element.inbox_id)
+                $or: [{ _id: ObjectID(element.inbox_id) }, { _id: element.inbox_id }]
             });
         });
 
@@ -599,7 +658,6 @@ const getUserCitizenById = async(id) => {
     try {
         const db = await mongodb.getDb();
 
-
         let user = await db.collection(mongoCollections.USERS).findOne({
             _id: ObjectID(id),
         });
@@ -609,7 +667,7 @@ const getUserCitizenById = async(id) => {
         }
 
         let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
-            user_id: id,
+            $or: [{ user_id: id }, { user_id: ObjectID(id) }]
         });
 
         if (!user_inbox) {
@@ -620,7 +678,7 @@ const getUserCitizenById = async(id) => {
         }
 
         let inbox = await db.collection(mongoCollections.INBOX).findOne({
-            _id: ObjectID(user_inbox.inbox_id)
+            $or: [{ _id: user_inbox.inbox_id }, { _id: user_inbox.inbox_id.toString() }]
         });
 
         return {
@@ -700,7 +758,7 @@ const getUserCitizenDetailById = async(id) => {
         
      //console.log("Datos de usuario xxxx", user);
         let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
-            user_id: id,
+            $or: [{ user_id: id }, { user_id: ObjectID(id) }]
         });
 
         if (!user_inbox) {
@@ -713,7 +771,7 @@ const getUserCitizenDetailById = async(id) => {
         //console.log("Datos de user_inbox xxxx", user_inbox);
 
         let inbox = await db.collection(mongoCollections.INBOX).findOne({
-            _id: ObjectID(user_inbox.inbox_id)
+            _id: ObjectID(user_inbox.inbox_id.toString())
         });
 
         //console.log("Datos de inbox xxxx", inbox);
@@ -722,7 +780,7 @@ const getUserCitizenDetailById = async(id) => {
             let FileDNI = inbox.imageDNI
             let path = FileDNI.path
             imgDNI = await getImageDNI(path);
-            console.log("Imagen DNI", imgDNI)
+            // console.log("Imagen DNI", imgDNI)
         }
 
 
@@ -775,28 +833,47 @@ const getUserCitizenDetailById = async(id) => {
 }
 
 
+const obtieneDNICiudadano= async(iduser) => {
+    const db = await mongodb.getDb();									 
+    const datosCiudadano = await db.collection(mongoCollections.INBOX).findOne({
+        register_user_id: iduser + "",	  
+    });
 
+    return { success: true, datosCiudadano: datosCiudadano};
+}
 
 const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     console.log("datooooooooooooooooooooos update sttate inbox", "  --- " , iduser, "  --- " , estado, "  --- " , name , "  --- " , email);
     const db = await mongodb.getDb();
     let objectMotivo = {}; 
-    const inbox = await db.collection(mongoCollections.INBOX).findOne({
+    const pendingInbox = await db.collection(mongoCollections.INBOX).findOne({
         register_user_id: iduser + "",
 			  
     });
 
-    if (!inbox) {
+    if (!pendingInbox) {
         return { success: false, error: 'No tiene casilla' };
     }
 
-    let inbox_by_email = await db.collection(mongoCollections.INBOX).findOne({
-        email: inbox.email,
-        $or: [{ status: 'APROBADO' }, { status: null }],
-    });
+    if(estado == 'APROBADO'){
+        let inbox_by_email = await db.collection(mongoCollections.INBOX).findOne({
+            email: pendingInbox.email,
+            $or: [{ status: 'APROBADO' }, { status: null }],
+        });
 
-    if (inbox_by_email != null) {
-        return { success: false, error: 'Ya existe una casilla electrónica aprobada con el correo ingresado' };
+        if (inbox_by_email != null) {
+            return { success: false, error: 'Ya existe una casilla electrónica aprobada con el correo ingresado' };
+        }
+
+        let inbox_by_doc = await db.collection(mongoCollections.INBOX).findOne({
+            doc: pendingInbox.doc,
+            doc_type: pendingInbox.doc_type,
+            $or: [{ status: 'APROBADO' }, { status: null }],
+        });
+
+        if (inbox_by_doc != null) {
+            return { success: false, error: 'Ya existe una casilla electrónica aprobada con el documento ingresado' };
+        }
     }
 
     if(motivo != null){
@@ -831,12 +908,12 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
     let names = `${user.name} ${user.lastname != null ? user.lastname : ''} ${user.second_lastname != null ? user.second_lastname : ''}`;
     if(result){
         respuestaEmail = await emailService.sendEmailEstateInbox(names , email, estado, password, userDoc, objectMotivo);
-        if (estado === "APROBADO") {
-            await searchCLARIDAD(inbox.doc, inbox.doc_type, true);
-        }
+        /*if (estado === "APROBADO") {
+            await searchCLARIDAD(pendingInbox.doc, pendingInbox.doc_type, true);
+        }*/
     }
 
-    return { success: true };
+    return { success: true, aprobado: estado, pendingInbox: pendingInbox };
 }
 
 module.exports = { 
@@ -855,4 +932,4 @@ module.exports = {
     getUserCitizenById,
     getLogClaridad,
     getUserCasilla,
-    existCE, getUserCitizenDetailById ,updateEstateInbox};
+    existCE, getUserCitizenDetailById ,updateEstateInbox, obtieneDNICiudadano, searchCLARIDAD};

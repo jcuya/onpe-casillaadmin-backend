@@ -34,6 +34,7 @@ async function getConnections() {
         useUnifiedTopology: true,
         // autoReconnect: true,
         // reconnectTries: 10,
+        retrywrites: false
     };
 
     uri = `mongodb://${process.env.MONGODB_WEB_USERNAME}:${process.env.MONGODB_WEB_PASSWORD}@${process.env.MONGODB_WEB_HOST}`;

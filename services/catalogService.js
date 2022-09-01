@@ -49,7 +49,7 @@ const paginateCatalog = async(search, page, count) => {
             ]
         };
 
-        let cursor = await db.collection(mongoCollections.CATALOG).find(_filter).collation({ locale: "en", strength: 1 }).sort({ create_date: -1 }).skip(page > 0 ? ((page - 1) * count) : 0).limit(count);
+        let cursor = await db.collection(mongoCollections.CATALOG).find(_filter).sort({ create_date: -1 }).skip(page > 0 ? ((page - 1) * count) : 0).limit(count);
         let recordsTotal = await cursor.count();
         let data = [];
         for await (const item of cursor) {

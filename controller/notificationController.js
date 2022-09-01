@@ -8,7 +8,8 @@ const notificationService = require('./../services/notificationService');
 const inboxService = require('./../services/inboxService');
 const jwtService = require('./../services/jwtService');
 const fs = require('fs');
-
+require('./../services/colas/kitchen');
+const placeOrder = require('./../services/colas/waiter');
 const typeFiles = ["application/pdf", "image/jpg", "image/jpeg", "image/png", "image/bmp", "image/x-ms-bmp"];
 
 const notifications = async (req, res, next) => {
@@ -276,6 +277,19 @@ const saveAutomaticNotification = async (req, res, next) => {
         return res.status(400).send({success: false, message: message});
     }
     const result = await notificationService.automaticNotification(notification, files);
+
+    let notificactionId=result.insert.insertedId;
+    //Envía a cola la firma automatizada y el envío de correo
+    if(result.sistema==='MPVE'){
+        placeOrder.placeOrderMPVE(notificactionId)
+        .then((job) => {
+            console.log('\n Se creo la notificacion MPVE y ahora se inicia la firma automatizada \n ');
+        })
+        .catch(() => {
+            console.log('\n Se creo la notificacion MPVE y No se pudo realizar la firma automatizada " \n ');
+        });
+    }
+         
     return res.status(!result ? 404 : 200).json(result);
 }
 
