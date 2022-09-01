@@ -93,7 +93,7 @@ const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin
                     inbox.status = "";
                 }
 
-                users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status });
+                users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status  , enAtencion : inbox.enAtencion == null || inbox.enAtencion == undefined ? false : inbox.enAtencion});
             }
         }
 
@@ -130,7 +130,8 @@ const getUsers = async(search, page, count) => {
                 createdAt: user.created_at,
                 createUser: user.create_user,
                 email: user.email,
-                profile: user.profile
+                profile: user.profile,
+                enAtencion : user.enAtencion == null || user .enAtencion == undefined ? false : user.enAtencion
             });
         }
         return { success: true, recordsTotal: recordsTotal, users: users };
