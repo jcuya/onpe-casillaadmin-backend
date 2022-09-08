@@ -23,7 +23,11 @@ const generateAuthToken = async (_id, docType, doc, name, lastname, profile, job
         exp: Math.floor(Date.now() / 1000) + authTokenTtl
     };
 
-    return jwt.sign(data, process.env.AUTH_JWT_HMACKEY);
+    let session = {user_id: data.id.toString(), name: name, lastname: lastname };
+
+    let token = jwt.sign(data, process.env.AUTH_JWT_HMACKEY);
+    await redisWriter.set(token, JSON.stringify(session), 'EX', authTokenTtl);
+    return token;
 }
 
 const verifyToken = async (token, profile) => {

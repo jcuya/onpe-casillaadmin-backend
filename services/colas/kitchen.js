@@ -13,19 +13,20 @@ const cookQueue = new Queue('cook', options);
 const cookQueueCiudadano = new Queue('cookCiudadano', options);
 const cookQueueMPVE = new Queue('cookMPVE', options);
 
-cookQueue.process(8, (job, done) => {
-
-    notificationService.firmaConAgenteAutomatizado(job);
-    done();
+cookQueue.process(32, (job, done) => {
+    notificationService
+        .firmaConAgenteAutomatizado(job)
+        .finally(() => done()); // Wait for the promise to resolve before exiting the process
 });
 
-cookQueueCiudadano.process(8, (job, done) => {
-   
-    notificationService.firmaConAgenteAutomatizadoCiudadano(job);
-    done();
+cookQueueCiudadano.process(32, (job, done) => {
+    notificationService
+        .firmaConAgenteAutomatizadoCiudadano(job)
+        .finally(() => done()); // Wait for the promise to resolve before exiting the process
 });
 
-cookQueueMPVE.process(8, (job, done) => {
-    notificationService.firmaConAgenteAutomatizadoMPVE(job);
-    done();
+cookQueueMPVE.process(32, (job, done) => {
+    notificationService
+        .firmaConAgenteAutomatizadoMPVE(job)
+        .finally(() => done()); // Wait for the promise to resolve before exiting the process
 });

@@ -104,7 +104,7 @@ module.exports = () => {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.editUser);
     router.get('/get-user', function(req, res, next) {
-        authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
+        authFilterRole([appConstants.PROFILE_ADMIN, appConstants.PROFILE_REGISTER], req, res, next);
     }, userController.getUserCitizenById);
    /* router.get('/get-user-info-detail', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_EVALUATOR], req, res, next);

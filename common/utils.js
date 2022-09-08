@@ -67,5 +67,24 @@ const copyFile = async (oldPathFile, newPath, filename, doc, timestamp, isTmp, i
     }
 
 }
+const existFile = async (pathFile, nameFile) => {
+    let respuesta = true;
+    //pathRelativo=pathFile + '/' + nameFile;
+    pathAbsoluto = pathFile + '/' + nameFile;
+    //fs.readFile('./../../' + pathRelativo, 'utf8', function(err, data) {
+      fs.readFileSync(pathAbsoluto, 'utf8', function(err, data) {
+        if (err) {
+          console.log('name: '+nameFile +' No es candidato');       
+          respuesta = false;
+          return false;
+          //return console.log(err);
+        }else{
+          console.log('name: '+nameFile +' Es candidato');
+          respuesta = true;
+          return true;          
+        }
+      });
+    return respuesta;
+}
 
-module.exports = {validNumeric, validEmail, isEmpty, validNewPassword, passwordHash, getPath, copyFile, stringHash};
+module.exports = {validNumeric, validEmail, isEmpty, validNewPassword, passwordHash, getPath, copyFile, stringHash, existFile};

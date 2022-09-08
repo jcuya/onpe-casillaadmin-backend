@@ -49,9 +49,9 @@ const recoverPassword = async(req, res, next) => {
         return res.sendStatus(400);
     }
 
-    /*if (!await recaptchaService.isValid(recaptcha, req.ip)) {
+    if (!await recaptchaService.isValid(recaptcha, req.ip)) {
         return res.sendStatus(400);
-    }*/
+    }
 
     const result = await userService.recoverPassword(docType, doc);
 

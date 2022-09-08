@@ -20,7 +20,7 @@ const placeOrder = require('./../services/colas/waiter');
 const typeFiles = ["application/pdf", "image/jpg", "image/jpeg", "image/png", "image/bmp", "image/x-ms-bmp"];
 
 const users = async(req, res, next) => {
-    const { search, page, count, estado, fechaInicio, fechaFin } = req.body;
+    const { search, page, count, estado, fechaInicio, fechaFin, ordenFec } = req.body;
 
     if (!page || !count) {
         return res.sendStatus(400);
@@ -31,7 +31,7 @@ const users = async(req, res, next) => {
         return res.sendStatus(400);
     }
 
-    let result = await userService.getUsersCitizen(search, page, count, estado, fechaInicio, fechaFin);
+    let result = await userService.getUsersCitizen(search, page, count, estado, fechaInicio, fechaFin, ordenFec);
 
     if (!result.success) {
         return res.json({ success: false, error: result.error });
@@ -428,11 +428,12 @@ const getUserCitizenById = async(req, res, next) => {
 
 const getUserCitizenDetailById = async(req, res, next) => {
     const { id } = req.query;
+    const token = req.token;
 
     if (utils.isEmpty(id)) {
         return res.sendStatus(400);
     }
-    let result = await userService.getUserCitizenDetailById(id);
+    let result = await userService.getUserCitizenDetailById(id, token);
     return res.json(result);
 }
 

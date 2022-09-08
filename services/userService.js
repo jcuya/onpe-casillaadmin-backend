@@ -14,9 +14,12 @@ const emailService = require('./../services/emailService');
 const crypto = require("crypto");
 const axios = require('axios');
 const fs = require('fs');
+const {redisWriter, redisReader} = require('./../database/redis');
 //const mkdirp = require("mkdirp");
 
-const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin) => {
+const takenInboxTtl = 5 * 60;
+
+const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin, ordenFec) => {
     try {
         const db = await mongodb.getDb();
         let _filter = {
@@ -49,52 +52,90 @@ const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin
             }
         }
 
-        let cursor = await db.collection(mongoCollections.INBOX).find(_filter).sort({ created_at: -1 }).skip(page > 0 ? ((page - 1) * count) : 0).limit(count);
+        let cursor = await db.collection(mongoCollections.INBOX)
+            .find(_filter)
+            .sort({created_at: (ordenFec == undefined || ordenFec == 'asc' ? 1 : -1)})
+            .skip(page > 0 ? ((page - 1) * count) : 0)
+            .limit(count);
+
+        let inbox_id_list = [];
+        let inbox_str_id_list = [];
+        let inboxes = {};
+        let inboxes_bydoc = {};
+        for await (const inbox of cursor) {
+            inbox_id_list.push(inbox._id);
+            inbox_str_id_list.push(inbox._id.toString());
+            inboxes[inbox._id] = inbox;
+            inboxes_bydoc[inbox.doc_type+":"+inbox.doc] = inbox._id; //por si se tratan de registros antiguos
+        }
 
         let recordsTotal = await cursor.count();
 
+        let user_inbox_array = await db.collection(mongoCollections.USER_INBOX)
+            .find({ $or: [{ inbox_id: {$in: inbox_id_list} }, { inbox_id: {$in: inbox_str_id_list} }]})
+            .toArray();
+
+        let user_id_list = [];
+        let user_inboxes = {};
+        let user_inboxes_doc_test = {};
+        for (const user_inbox of user_inbox_array) {
+            if (user_inbox.user_id != null) {
+                user_id_list.push(ObjectID(user_inbox.user_id.toString()));
+                if(user_inbox.inbox_id != null && inboxes[user_inbox.inbox_id.toString()] != null){
+                    user_inboxes[user_inbox.inbox_id.toString()] = user_inbox.user_id.toString();
+                    user_inboxes_doc_test[user_inbox.doc_type+":"+user_inbox.doc] = true;
+                }
+            }
+        }
+
+        let users_by_id = (await db.collection(mongoCollections.USERS)
+            .find({profile: appConstants.PROFILE_CITIZEN, _id: {$in: user_id_list}})
+            .toArray())
+            .reduce((acc, user) => {
+                return {...acc, [user._id.toString()]: user}
+            }, {});
+
+        let users_by_doc = {};
+        if(Object.values(users_by_id).length < inbox_id_list.length){  //usuarios que no tienen ids en la tabla user_inbox
+            let doc_faltantes = Object.keys(inboxes_bydoc)
+                .filter(doc_key => !Object.keys(user_inboxes_doc_test).includes(doc_key))
+                .map(doc_key => inboxes[inboxes_bydoc[doc_key]])
+                .map(inbox => {return {'doc_type': inbox.doc_type, 'doc': inbox.doc}});
+
+            users_by_doc = (await db.collection(mongoCollections.USERS)
+                .find({ profile: appConstants.PROFILE_CITIZEN, $or: doc_faltantes })
+                .toArray())
+                .reduce((acc, user) => {
+                    return {...acc, [user.doc_type + ':' + user.doc]: user}
+                }, {});
+            console.log("List user by doc: " , users_by_doc);
+        }
+
+
         let users = [];
 
-        for await (const inbox of cursor) {
-            let user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
-                $or: [{ inbox_id: inbox._id }, { inbox_id: inbox._id.toString() }]
-            });
-
-            if (!user_inbox) {
-                user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
-                    doc_type: inbox.doc_type,
-                    doc: inbox.doc
-                });
+        for await (const inbox of Object.values(inboxes)) {
+            let user = users_by_id[user_inboxes[inbox._id.toString()]];
+            if(user == undefined){
+                user = users_by_doc[inbox.doc_type+':'+inbox.doc];
+            }
+            if(user == undefined){
+                continue;
+            }
+            var name;
+            if(user.doc_type === 'RUC'){
+                name = `${user.name}`;
+            }else{
+                name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
             }
 
-            let user;
-            if (user_inbox.user_id != null) {
-                user = await db.collection(mongoCollections.USERS).findOne({
-                    _id: ObjectID(user_inbox.user_id.toString())
-                });
-            } else {
-                user = await db.collection(mongoCollections.USERS).findOne({
-                    doc_type: inbox.doc_type,
-                    doc: inbox.doc,
-                    profile: appConstants.PROFILE_CITIZEN
-                });
+            if(inbox.status == null){
+                inbox.status = "";
             }
 
-            if(user != null){
-                var name;
-                if(user.doc_type === 'RUC'){
-                    name = `${user.name}`;
-                }else{
-                    name = `${user.name} ${user.lastname} ${user.second_lastname != undefined?user.second_lastname:''}`;
-                }
+            let isTaken = (await validarEnAtencion(inbox._id.toString())) != null;
 
-                console.log("INB0000X" , inbox)
-                if(inbox.status == null){
-                    inbox.status = "";
-                }
-
-                users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: user.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status  , enAtencion : inbox.enAtencion == null || inbox.enAtencion == undefined ? false : inbox.enAtencion});
-            }
+            users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: inbox.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status, enAtencion: isTaken });
         }
 
         return { success: true, recordsTotal: recordsTotal, users: users };
@@ -130,8 +171,7 @@ const getUsers = async(search, page, count) => {
                 createdAt: user.created_at,
                 createUser: user.create_user,
                 email: user.email,
-                profile: user.profile,
-                enAtencion : user.enAtencion == null || user .enAtencion == undefined ? false : user.enAtencion
+                profile: user.profile
             });
         }
         return { success: true, recordsTotal: recordsTotal, users: users };
@@ -238,16 +278,16 @@ const searchCLARIDAD = async (dniCandidato, tipoDoc, generarPassword) => {
                 dniCandidato: dniCandidato,
                 generarPassword: generarPassword
             },
-            timeout: 15000
+            timeout: 5000
         });
         result.success = true;
         result.esCandidato = response.data.success;
         result.respuestaClaveGenerada = response.data.data.clave;
         result.statusCode = response.statusCode;
-    } catch (error) {
-        logger.error(error);
+    } catch (error) {       
         let err = error.toJSON();
-        if(err.status != 404) await saveDoc(dniCandidato, tipoDoc);
+        //logger.error("Error Status Claridad: "+err.status + " - DNI: "+dniCandidato);
+        //if(err.status != 404) await saveDoc(dniCandidato, tipoDoc);
         result.success = false;
         result.statusCode = err.status;
     }
@@ -741,7 +781,7 @@ const getImageDNI = async(pathPrincipal) => {
 }
 
 
-const getUserCitizenDetailById = async(id) => {
+const getUserCitizenDetailById = async(id, token) => {
     try {
         const db = await mongodb.getDb();
         var tipoUser ="";
@@ -800,6 +840,8 @@ const getUserCitizenDetailById = async(id) => {
             tipoUser= 'n'
         }
 
+        let estadoAtencion = await procesarEnAtencion(inbox._id.toString(), token);
+
 
         return {
             success: true,
@@ -822,7 +864,9 @@ const getUserCitizenDetailById = async(id) => {
                 attachments: inbox.attachments,
                 imageDNI : imgDNI,
                 address: user.address,
-                representante : represent
+                representante : represent,
+                enAtencion: estadoAtencion.taken,
+                enAtencionPor: (estadoAtencion.takenBy != null ? estadoAtencion.takenBy.name : '')
             }
         };
 
@@ -831,6 +875,31 @@ const getUserCitizenDetailById = async(id) => {
         return { success: false, error: errors.INTERNAL_ERROR };
     }
 
+}
+
+const procesarEnAtencion = async (inbox_id, token) => {
+
+    let key = "INBOX_ID:" + inbox_id;
+    let takenInbox = await validarEnAtencion(inbox_id);
+    let session = JSON.parse(await redisReader.get(token));
+
+    if (takenInbox != null) {
+        if(takenInbox.takenBy.user_id == session.user_id){
+            return {taken: false, takenBy: null};
+        }
+        return {taken: true, takenBy: takenInbox.takenBy};
+    }
+    takenInbox = {takenBy: {user_id: session.user_id, name: session.name + " " + session.lastname}};
+    await redisWriter.set(key, JSON.stringify(takenInbox), 'EX', takenInboxTtl);
+    logger.info(takenInbox);
+
+    return {taken: false, takenBy: null};
+}
+
+const validarEnAtencion = async (inbox_id) => {
+    let key = "INBOX_ID:" + inbox_id;
+    let data = await redisReader.get(key);
+    return JSON.parse(data);
 }
 
 
@@ -854,6 +923,10 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
 
     if (!pendingInbox) {
         return { success: false, error: 'No tiene casilla' };
+    }
+
+    if (pendingInbox.status != 'PENDIENTE') {
+        return {success: false, error: 'La solicitud registro de casilla ya fue atendida'};
     }
 
     if(estado == 'APROBADO'){

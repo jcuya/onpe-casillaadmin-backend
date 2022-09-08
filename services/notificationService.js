@@ -444,6 +444,65 @@
      return { success: true };
  }
  
+ const automaticNotificationCredencialClaridad = async(notification_param, pathCredenciales, nameCredencial) => {
+    let sistema = notification_param.name;
+     let docType = notification_param.docType;
+     let doc = notification_param.doc;
+     let message = notification_param.message;
+     let expedient = notification_param.expedient;
+     
+     let created_at_timestamp = Date.now();
+     let created_at = new Date(created_at_timestamp);
+     let notification = {};
+     
+     let resultUser = await userService.getUserCitizen(docType, doc);
+     let inboxUser = await inboxService.getInbox(docType, doc);
+ 
+     if (!resultUser.success || !inboxUser.success) {
+         return { success: false, message: resultUser.error };
+     }
+
+     let attachments = [];
+
+     try {
+         const db = await mongodb.getDb();
+
+         let nameFileCredencial=nameCredencial;
+         let pathFileCredencial=pathCredenciales+'/' + nameCredencial;
+         
+         let fileCredencial = await utils.copyFile(pathFileCredencial, appConstants.PATH_NOTIFICATION, nameFileCredencial, notification.doc, created_at_timestamp, true, true);
+         attachments.push(fileCredencial);        
+ 
+         let user = resultUser.user;
+         
+         notification.expedient = `${expedient != null ? expedient : `Notificación automática - Credenciales del sistema ${sistema}`}`;
+         notification.message = `${message != null ? message : `Descargue el archivo PDF adjunto, en el se indicará sus Credenciales de Acceso al Sistema ${sistema}.`}`;
+ 
+         let newNotification = {
+             inbox_id: ObjectId(inboxUser.inbox._id),
+             inbox_doc_type: docType,
+             inbox_doc: doc,
+             inbox_name: user.names,
+             organization_name: user.organization_name,
+             expedient: notification.expedient,
+             message: notification.message,
+             attachments: attachments,
+             created_at: created_at,
+             received_at: created_at,
+             automatic: true,
+         }
+ 
+         if(user.organization_doc != null) newNotification.organization_doc = user.organization_doc;
+ 
+         let insert = await db.collection(mongoCollections.NOTIFICATIONS).insertOne(newNotification);
+         return { success: true, message: "Notificación registrada", insert: insert, sistema: sistema };
+ 
+     } catch (err) {
+         logger.error(err);
+         return { success: false, message: errors.INTERNAL_ERROR };
+     }
+ }
+
  const automaticNotification = async(notification_param, files) => {
  
      let sistema = notification_param.name;
@@ -766,101 +825,138 @@
  const firmaConAgenteAutomatizado = async(job) => {
  
     let box = job.data;
- 
-    const resultClaridad = await userService.searchCLARIDAD(box.box_doc, box.box_doc_type, true);
-    console.log('\n resultClaridad.success: '+resultClaridad.success);
-    console.log('\n resultClaridad.esCandidato '+resultClaridad.esCandidato);
-    console.log('\n resultClaridad.respuestaClaveGenerada: '+resultClaridad.respuestaClaveGenerada);
-    if(resultClaridad.success && resultClaridad.esCandidato && resultClaridad.respuestaClaveGenerada==='CLAVE GENERADA') {
- 
-         //Datos del notificador de Agente Automatizado
-         const notifierUserDNI= process.env.NOTIFICADOR_AGENTE;
-         const profile='notifier';
-         const notifierAgente = await getNotifierAgente(notifierUserDNI,profile);
-         if(!notifierAgente.success){
-             console.log('\n No existe Notificador Agente \n ');
-         }  
-         let notifierUser=notifierAgente.userNotifier;
-         notifierUser.docType=notifierUser.doc_type;
- 
-         //Obtiene Notificacion del candidato
-         const dniCandidato=box.box_doc;
-         const notification = await getNotificationCredencialAgente(dniCandidato);
-         if(!notification.success){
- 
-         }
- 
-         //Se usa las credenciales de Notificador de Agente Automatizado
-         const result2 = await singNotificationAutomatic(notification.id, notifierUser);
-         if (result2.success) {
-             const parameter = result2.param;
-             if (parameter.length > 0) {
-                 const result3 = await sendNotificationAutomatic(notification.id, notifierUser);
-             }else{
-                 //No se puede enviar notificación
-                 console.log('\n No se envió notificación \n ');
-             }    
-         } else {
-             //No se puede firmar
-             console.log('\n No se realizó la firma de Agente Automatizado \n ');
-         } 
+    let dni_ciudadano= box.box_doc;
+    userService.searchCLARIDAD(box.box_doc, box.box_doc_type, true);
+
+    const pathCredenciales = process.env.PATH_CREDENCIALES_CLARIDAD;
+    const nameCredencial = 'Credenciales_CLARIDAD_'+dni_ciudadano+'.pdf';
+    const existFile = await utils.existFile(pathCredenciales, nameCredencial);
+    if(existFile){
+        console.log(dni_ciudadano + ' si es candidato.');
+
+        let notification_param = {
+            name: 'CLARIDAD',
+            doc: dni_ciudadano,
+            docType: 'dni',
+        }
+        
+        let res = await automaticNotificationCredencialClaridad(notification_param, pathCredenciales, nameCredencial);
+        if(res.success){
+
+            //Datos del notificador de Agente Automatizado
+            const notifierUserDNI= process.env.NOTIFICADOR_AGENTE;
+            const profile='notifier';
+            const notifierAgente = await getNotifierAgente(notifierUserDNI,profile);
+            if(!notifierAgente.success){
+                console.log('\n No existe Notificador Agente \n ');
+            }  
+            let notifierUser=notifierAgente.userNotifier;
+            notifierUser.docType=notifierUser.doc_type;
+    
+            //Obtiene Notificacion del candidato
+            const dniCandidato=box.box_doc;
+            const notification = await getNotificationCredencialAgente(dniCandidato);
+            if(!notification.success){
+    
+            }
+    
+            //Se usa las credenciales de Notificador de Agente Automatizado
+            const result2 = await singNotificationAutomatic(notification.id, notifierUser);
+            if (result2.success) {
+                const parameter = result2.param;
+                if (parameter.length > 0) {
+                    const result3 = await sendNotificationAutomatic(notification.id, notifierUser);
+                    if(!result3){
+                        console.log('Notificacion incompleta');
+                    }
+                }else{
+                    console.log('\n No se envió notificación \n ');
+                }    
+            } else {
+                console.log('\n No se realizó la firma de Agente Automatizado \n ');
+            } 
+        }else{
+            console.log('No pudo crearse la notificacion de credencial de '+dni_ciudadano);
+        }     
+    }else{
+        console.log(dni_ciudadano + ' no es candidato.');
     }
- 
  }
  
  const firmaConAgenteAutomatizadoCiudadano = async(job) => {
  
+    //sleep(1000);
+
     let datosFirma = job.data;
  
     let iduser= datosFirma.iduser;
     let pendingInbox= datosFirma.pendingInbox;
+    let dni_ciudadano= pendingInbox.doc;
 
-    const resultClaridad = await userService.searchCLARIDAD(pendingInbox.doc, pendingInbox.doc_type, true);
-    console.log('\n resultClaridad.success: '+resultClaridad.success);
-    console.log('\n resultClaridad.esCandidato '+resultClaridad.esCandidato);
-    console.log('\n resultClaridad.respuestaClaveGenerada: '+resultClaridad.respuestaClaveGenerada);
-    if(resultClaridad.success && resultClaridad.esCandidato && resultClaridad.respuestaClaveGenerada==='CLAVE GENERADA') {
- 
-        //Datos del notificador de Agente Automatizado
-        const notifierUserDNI= process.env.NOTIFICADOR_AGENTE;
-        const profile='notifier';
-        const notifierAgente = await getNotifierAgente(notifierUserDNI,profile);
-        if(!notifierAgente.success){
-            console.log('\n No existe Notificador Agente \n ');
-        }  
-        let notifierUser=notifierAgente.userNotifier;
-        notifierUser.docType=notifierUser.doc_type;
-    
-    
-        //Obtiene Datos del ciudadano
-        const ciudadano = await userService.obtieneDNICiudadano(iduser);
-        if(!ciudadano.success){
-            console.log('\n No se encontró el ciudadano \n ');
+    userService.searchCLARIDAD(pendingInbox.doc, pendingInbox.doc_type, true);
+
+    //automaticNotificationCredencialClaridad
+    const pathCredenciales = process.env.PATH_CREDENCIALES_CLARIDAD;
+    const nameCredencial = 'Credenciales_CLARIDAD_'+dni_ciudadano+'.pdf';
+    const existFile = await utils.existFile(pathCredenciales, nameCredencial);
+    if(existFile){
+        console.log(dni_ciudadano + ' si es candidato.');
+
+        let notification_param = {
+            name: 'CLARIDAD',
+            doc: dni_ciudadano,
+            docType: 'dni',
         }
-    
-        //Obtiene Notificacion del candidato
-        const dniCandidato=ciudadano.datosCiudadano.doc;
-        const notification = await getNotificationCredencialAgente(dniCandidato);
-        if(!notification.success){
-    
-        }
-    
-        //Se usa las credenciales de Notificador de Agente Automatizado
-        const result2 = await singNotificationAutomatic(notification.id, notifierUser);
-        if (result2.success) {
-            const parameter = result2.param;
-            if (parameter.length > 0) {
-                const result3 = await sendNotificationAutomatic(notification.id, notifierUser);
-            }else{
-                //No se puede enviar notificación
-                console.log('\n No se envió notificación \n ');
-            }    
-        } else {
-            //No se puede firmar
-            console.log('\n No se realizó la firma de Agente Automatizado \n ');
-        } 
-    }   
-     
+
+        let res = await automaticNotificationCredencialClaridad(notification_param, pathCredenciales, nameCredencial);
+        if(res.success){
+
+            //Datos del notificador de Agente Automatizado
+            const notifierUserDNI= process.env.NOTIFICADOR_AGENTE;
+            const profile='notifier';
+            const notifierAgente = await getNotifierAgente(notifierUserDNI,profile);
+            if(!notifierAgente.success){
+                console.log('\n No existe Notificador Agente \n ');
+            }  
+            let notifierUser=notifierAgente.userNotifier;
+            notifierUser.docType=notifierUser.doc_type;
+        
+        
+            //Obtiene Datos del ciudadano
+            const ciudadano = await userService.obtieneDNICiudadano(iduser);
+            if(!ciudadano.success){
+                console.log('\n No se encontró el ciudadano \n ');
+            }
+        
+            //Obtiene Notificacion del candidato
+            const dniCandidato=ciudadano.datosCiudadano.doc;
+            const notification = await getNotificationCredencialAgente(dniCandidato);
+            if(!notification.success){
+        
+            }
+        
+            //Se usa las credenciales de Notificador de Agente Automatizado
+            const result2 = await singNotificationAutomatic(notification.id, notifierUser);
+            if (result2.success) {
+                const parameter = result2.param;
+                if (parameter.length > 0) {
+                    const result3 = await sendNotificationAutomatic(notification.id, notifierUser);
+                    if(!result3){
+                        console.log('Notificacion incompleta');
+                    }
+                }else{
+                    console.log('No se envió notificación \n ');
+                }    
+            } else {
+                console.log('No se realizó la firma de Agente Automatizado \n ');
+            } 
+
+        }else{
+            console.log('No pudo crearse la notificacion de credencial de '+dni_ciudadano);
+        }     
+    }else{
+        console.log(dni_ciudadano + ' no es candidato.');
+    }
  }
 
  const firmaConAgenteAutomatizadoMPVE = async(job) => {
@@ -880,8 +976,6 @@
     let notifierUser=notifierAgente.userNotifier;
     notifierUser.docType=notifierUser.doc_type;
 
-    //await sleep(2000);
-
     try {
         const db = await mongodb.getDb();
 
@@ -897,6 +991,9 @@
                 if (parameter.length > 0) {
                     console.log('\n Se realiza la firma automatizada MPVE correctamente\n ');
                     const result3 = await sendNotificationAutomatic(notification._id, notifierUser);
+                    if(!result3){
+                        console.log('Notificacion incompleta');
+                    }
                 }else{
                     //No se puede enviar notificación
                     console.log('\n No se envio notificación MPVE\n ');
@@ -931,4 +1028,5 @@
      firmaConAgenteAutomatizado,
      firmaConAgenteAutomatizadoCiudadano,
      firmaConAgenteAutomatizadoMPVE,
+     automaticNotificationCredencialClaridad,
  };
