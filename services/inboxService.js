@@ -64,7 +64,7 @@ const getApprovedInboxByDoc = async (docType, doc) => {
             return {success: false};
         }
 
-        return {success: true};
+        return {success: true, inbox: {_id: inbox._id, doc: inbox.doc, doc_type: inbox.doc_type}};
 
     } catch (err) {
         logger.error(err);
@@ -182,4 +182,63 @@ const downloadPdfInbox = async (idInbox, pdf_type) => {
     }
 }
 
-module.exports = {getInbox, getInboxUserCitizen, downloadPdfInbox, getApprovedInboxByDoc, getApprovedInboxByEmail};
+const inboxEdit = async (inboxId, email, cellphone, ubigeo, address, usuarioRegistro) => {
+    const db = await mongodb.getDb();
+    const inbox = await db.collection(mongoCollections.INBOX).findOne({
+        _id: ObjectId(inboxId)
+    });
+
+    if(!inbox){
+        return { success: false, error: 'No existe la casilla' };
+    }
+
+    var user_inbox = await db.collection(mongoCollections.USER_INBOX).findOne({
+        $or: [{ inbox_id: inbox._id }, { inbox_id: inbox._id.toString() }]
+    });
+
+    var user;
+    if(user_inbox != null && user_inbox.user_id != null){
+        user = await db.collection(mongoCollections.USERS).findOne({
+            _id: ObjectId(user_inbox.user_id.toString())
+        });
+    }
+
+    if (!user) {
+        var users = await db.collection(mongoCollections.USERS).find({
+            doc_type: inbox.doc_type,
+            doc: inbox.doc
+        }).toArray();
+        if(users.length == 1) {
+            user = users[0];
+        }
+    }
+
+    if(!user){
+        return { success: false, error: 'No es posible determinar el usuario para la casilla seleccionada' };
+    }
+
+    var result = await db.collection(mongoCollections.INBOX).updateOne({ _id: inbox._id }, {
+        $set: {
+            email: email,
+            cellphone: cellphone,
+            address: address,
+            update_user: usuarioRegistro,
+            update_date: new Date(),
+        }
+    });
+
+    var result2 = await db.collection(mongoCollections.USERS).updateOne({ _id: user._id }, {
+        $set: {
+            email: email,
+            cellphone: cellphone,
+            address: address,
+            Ubigeo: ubigeo,
+            update_user: usuarioRegistro,
+            update_date: new Date(),
+        }
+    });
+    return { success: true };
+}
+
+
+module.exports = {getInbox, getInboxUserCitizen, downloadPdfInbox, getApprovedInboxByDoc, getApprovedInboxByEmail, inboxEdit};

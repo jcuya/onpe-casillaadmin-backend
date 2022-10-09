@@ -6,6 +6,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path_upload = process.env.PATH_UPLOAD;
 const path_upload_tmp = process.env.PATH_UPLOAD_TMP;
+const utilLib = require('util');
+
+fs.readFileAsync = utilLib.promisify(fs.readFile).bind(fs);
 
 const validNumeric = (value) => {
     return /^[0-9]+$/.test(value) !== false;
@@ -46,7 +49,7 @@ const getPath = (prePath) => {
 
 const copyFile = async (oldPathFile, newPath, filename, doc, timestamp, isTmp, isBlocked) => {
     try {
-        let rawData = fs.readFileSync(oldPathFile);
+        let rawData = await fs.readFileAsync(oldPathFile);
 
         let pathAttachment = getPath(newPath);
 

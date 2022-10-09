@@ -53,8 +53,9 @@ const login = async (docType_, doc_, password_) => {
     }
 }
 
-const logout = async (token) => {
-    return redisWriter.del(token);
+const logout = async (authHeader) => {
+    const token = authHeader.split(' ')[1];
+    return await redisWriter.del(token);
 }
 
 module.exports = {login, logout};

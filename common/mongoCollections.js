@@ -14,4 +14,5 @@ module.exports = Object.freeze({
     CANDIDATE: 'candidate',
     LOG_CLARIDAD: 'log_claridad',
     TOKENS_SERVICE: 'tokens_services',
+    UBIGEOS: 'ubigeos',
 });

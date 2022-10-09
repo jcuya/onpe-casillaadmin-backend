@@ -78,13 +78,11 @@ const person = async(req, res, next) => {
 }
 
 const createBox = async(req, res, next) => {
-
-    console.log("USEREEEER", req);
     let box = req.fields;
     let files = req.files;
 
-    console.log("FILEEEEEEEEEE", files)
     let countFiles = Object.keys(files).length;
+    console.log("createBox", box, ":: files " + countFiles);
 
     if (utils.isEmpty(box.box_doc_type) ||
         utils.isEmpty(box.box_doc) ||
@@ -427,13 +425,13 @@ const getUserCitizenById = async(req, res, next) => {
 }
 
 const getUserCitizenDetailById = async(req, res, next) => {
-    const { id } = req.query;
+    const { id, atender } = req.query;
     const token = req.token;
 
     if (utils.isEmpty(id)) {
         return res.sendStatus(400);
     }
-    let result = await userService.getUserCitizenDetailById(id, token);
+    let result = await userService.getUserCitizenDetailById(id, token, atender);
     return res.json(result);
 }
 

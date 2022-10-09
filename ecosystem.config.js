@@ -47,7 +47,8 @@ module.exports = {
             WS_CLARIDAD: 'http://192.168.48.159:9001/apiClaridad/candidato/findByDocumentoIdentidad',
             URL_AGENTE: 'http://192.168.48.106:8080/firmaperuagente/api/signature',
             CREDENCIAL_AGENTE: 'XEzIPretAXEs0ecReThes!kocheXlR',
-            NOTIFICADOR_AGENTE: '10745022'
+            NOTIFICADOR_AGENTE: '20291973851',
+            PATH_CREDENCIALES_CLARIDAD: '/var/www/credenciales_claridad'
         }
     }]
 };

@@ -32,6 +32,10 @@ const generateAuthToken = async (_id, docType, doc, name, lastname, profile, job
 
 const verifyToken = async (token, profile) => {
     try {
+        let exists = await redisReader.get(token);
+        if (!exists) {
+            return false;
+        }
         const user = jwt.verify(token, process.env.AUTH_JWT_HMACKEY);
 
         if (user.profile === profile) {
@@ -55,7 +59,9 @@ const generateServiceToken = async (_id, user_service) => {
         exp: Math.floor(Date.now() / 1000) + expired
     }
 
-    return jwt.sign(data, process.env.AUTH_JWT_HMACKEY);
+    let token = jwt.sign(data, process.env.AUTH_JWT_HMACKEY);
+    await redisWriter.set(token, JSON.stringify(data), 'EX', authTokenTtl);
+    return token;
 }
 
 module.exports = {generateAuthToken, verifyToken, generateServiceToken}

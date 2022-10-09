@@ -96,7 +96,7 @@ const singNotification = async (req, res, next) => {
     }
 
     let [resultInbox, resultUser] = await Promise.all([
-        inboxService.getInbox(notification.docType, notification.doc),
+        inboxService.getApprovedInboxByDoc(notification.docType, notification.doc),
         userService.getUserCitizen(notification.docType, notification.doc)
     ]);
 
@@ -280,7 +280,7 @@ const saveAutomaticNotification = async (req, res, next) => {
 
     let notificactionId=result.insert.insertedId;
     //Envía a cola la firma automatizada y el envío de correo
-    if(result.sistema==='MPVE'){
+    if(result.success || result.sistema==='MPVE'){
         placeOrder.placeOrderMPVE(notificactionId)
         .then((job) => {
             console.log('\n Se creo la notificacion MPVE y ahora se inicia la firma automatizada \n ');
@@ -288,6 +288,13 @@ const saveAutomaticNotification = async (req, res, next) => {
         .catch(() => {
             console.log('\n Se creo la notificacion MPVE y No se pudo realizar la firma automatizada " \n ');
         });
+    }
+    
+    if(!result.success){
+        console.log("El ciudadano "+notification.doc+" tiene casilla DESAPROBADA");
+    }
+    if(!result.sistema==='MPVE'){
+        console.log("La notificacion NO tiene el campo name como MPVE");
     }
          
     return res.status(!result ? 404 : 200).json(result);

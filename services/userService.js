@@ -108,7 +108,6 @@ const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin
                 .reduce((acc, user) => {
                     return {...acc, [user.doc_type + ':' + user.doc]: user}
                 }, {});
-            console.log("List user by doc: " , users_by_doc);
         }
 
 
@@ -135,7 +134,7 @@ const getUsersCitizen = async(search, page, count, estado, fechaInicio, fechaFin
 
             let isTaken = (await validarEnAtencion(inbox._id.toString())) != null;
 
-            users.push({ id: user._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: inbox.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status, enAtencion: isTaken });
+            users.push({ id: user._id, inbox_id: inbox._id, name: name, doc_type: user.doc_type, doc: user.doc, organization: user.organization_name, createdAt: inbox.created_at, updateddAt: inbox.update_date, createUser: user.create_user, estate_inbox : inbox.status, enAtencion: isTaken });
         }
 
         return { success: true, recordsTotal: recordsTotal, users: users };
@@ -351,7 +350,7 @@ const getUserCitizen = async(docType, doc) => {
         });
 
         if (!inbox || !user) {
-            logger.error('user citizen ' + doc + '/' + docType + ' not exist');
+            logger.error('approved user citizen ' + doc + '/' + docType + ' not exist');
             return { success: false, error: errors.ADDRESSEE_CITIZEN_NOT_EXIST };
         }
 
@@ -396,7 +395,7 @@ const getUserCasilla = async(docType, doc) => {
         });
 
         if (!user) {
-            logger.error('user citizen ' + doc + '/' + docType + ' not exist');
+            logger.error('inbox validation: user citizen ' + doc + '/' + docType + ' not exist');
             return { success: false, error: errors.CITIZEN_NOT_EXIST.message };
         }
 
@@ -570,7 +569,7 @@ const getEmailCitizen = async(docType, doc) => {
         });
 
         if (!user) {
-            logger.error('user citizen ' + doc + '/' + docType + ' not exist');
+            logger.error('getting citizen email: user citizen ' + doc + '/' + docType + ' not exist');
             return { success: false, error: errors.ADDRESSEE_CITIZEN_NOT_EXIST };
         }
 
@@ -781,7 +780,7 @@ const getImageDNI = async(pathPrincipal) => {
 }
 
 
-const getUserCitizenDetailById = async(id, token) => {
+const getUserCitizenDetailById = async(id, token, atender) => {
     try {
         const db = await mongodb.getDb();
         var tipoUser ="";
@@ -840,8 +839,10 @@ const getUserCitizenDetailById = async(id, token) => {
             tipoUser= 'n'
         }
 
-        let estadoAtencion = await procesarEnAtencion(inbox._id.toString(), token);
-
+        let estadoAtencion = {enAtencion: false};
+        if(atender != undefined && atender == "true"){
+            estadoAtencion = await procesarEnAtencion(inbox._id.toString(), token);
+        }
 
         return {
             success: true,
@@ -981,6 +982,7 @@ const updateEstateInbox = async(iduser, estado, motivo= null,name , email) => {
 
     let names = `${user.name} ${user.lastname != null ? user.lastname : ''} ${user.second_lastname != null ? user.second_lastname : ''}`;
     if(result){
+        console.log("Aprobacion de la casilla para el ciudadano: " + name + " - iduser: " + iduser + " - DNI: " + pendingInbox.doc);
         respuestaEmail = await emailService.sendEmailEstateInbox(names , email, estado, password, userDoc, objectMotivo);
         /*if (estado === "APROBADO") {
             await searchCLARIDAD(pendingInbox.doc, pendingInbox.doc_type, true);

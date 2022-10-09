@@ -33,11 +33,11 @@ const login = async(req, res, next) => {
 
 
 const logout = async (req, res, next) => {
-    let token = req.headers['authorization'];
-    if (!token) {
+    let authHeader = req.headers['authorization'];
+    if (!authHeader) {
         return res.sendStatus(401);
     }
-    await loginService.logout(token)
+    await loginService.logout(authHeader)
 
     return res.json({success: true});
 }

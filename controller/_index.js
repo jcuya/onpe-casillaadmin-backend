@@ -9,6 +9,8 @@ const loginController = require('./../controller/loginController');
 const notificationController = require('./../controller/notificationController');
 const servicesController = require('./../controller/servicesController');
 const userController = require('./../controller/userController');
+const inboxController = require('./../controller/inboxController');
+const ubigeoController = require('./../controller/ubigeoController');
 const catalogController = require('./../controller/catalogController');
 const invokerController = require('./../controller/invokerController');
 const authNotifierFilter = require('./../filters/authNotifierFilter');
@@ -122,14 +124,13 @@ module.exports = () => {
     router.post('/updateEstateInbox', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_REGISTER], req, res, next);
     }, userController.updateEstateInbox);
+    router.post('/inbox/edit', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_ADMIN], req, res, next);
+    }, inboxController.inboxEdit);
     router.get('/download-pdf', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_ADMIN,appConstants.PROFILE_REGISTER], req, res, next);
     }, userController.download);
 
-
-
-
-    
 
     router.post('/person', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
@@ -158,6 +159,17 @@ module.exports = () => {
     router.post('/box', function(req, res, next) {
         authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
     }, userController.box);
+
+    router.get('/ubigeo/departamentos', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+    }, ubigeoController.listaDepartamentos);
+    router.get('/ubigeo/provincias/:codigod', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+    }, ubigeoController.listaProvincias);
+    router.get('/ubigeo/distritos/:codigod/:codigop', function(req, res, next) {
+        authFilterRole([appConstants.PROFILE_REGISTER, appConstants.PROFILE_ADMIN], req, res, next);
+    }, ubigeoController.listaDistritos);
+
     router.get('/download-pdf-box', userController.downloadPdfBox);
     router.get('/service/download/:token', invokerController.download);
     router.post('/service/upload/:token', formidableMiddleware(), invokerController.upload);
