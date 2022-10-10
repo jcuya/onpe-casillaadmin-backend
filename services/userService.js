@@ -229,10 +229,12 @@ const createUserCitizen = async(box, idUser, attachments, usuarioRegistro) => {
         register_user_id: idUser,
         created_at: created_at,
         updated_password: false,
-        create_user: usuarioRegistro
+        create_user: usuarioRegistro,
+        Ubigeo : box.ubigeo 
     };
 
     let newUserInbox = {
+        nroExpediente : box.user_nroExpediente,
         doc: box.box_doc,
         doc_type: box.box_doc_type,
         profile: appConstants.USER_INBOX_PROFILE_OWNER

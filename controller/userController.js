@@ -89,7 +89,7 @@ const createBox = async(req, res, next) => {
         utils.isEmpty(box.box_email) ||
         utils.isEmpty(box.user_cellphone) ||
         utils.isEmpty(box.box_address) ||
-        utils.isEmpty(box.box_acreditation_type) ||
+        // utils.isEmpty(box.box_acreditation_type) ||
         Object.keys(files).filter((x) => x.match(/^file[0-9]{1,3}$/g)).length == 0 ||
         countFiles == 0) {
         return res.status(400).json({success: false, error: "Datos no válidos"});
